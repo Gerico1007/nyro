@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: ResonanceDB API
+  title: tashdum API
   description: REST API for AI memory storage and retrieval using Upstash Redis.
   version: 1.0.0
 servers:
