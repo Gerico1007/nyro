@@ -10,6 +10,7 @@
 ## Phase 2: Advanced Features
 - [x] Scan operation for key pattern matching
 - [x] Stream operations for time-series data
+- [x] Basic CLI utilities (Redis operations scripts)
 - [ ] Pagination implementation for large datasets
 - [ ] Enhanced error responses with detailed information
 - [ ] Rate limiting implementation
