@@ -4,8 +4,8 @@ info:
   description: REST API for AI memory storage and retrieval using Upstash Redis.
   version: 1.0.0
 servers:
-  - url: https://pro-sponge-51413.upstash.io
-    description: Upstash Redis Server to store thread memory and processing at the speed of light
+  - url: http://loyal-lamb-40648.upstash.io:6379
+    description: Custom Upstash Redis instance for GPT memory storage and retrieval
 
 paths:
   /set/{key}:
