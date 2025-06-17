@@ -1,0 +1,3 @@
+curl
+jq # for JSON parsing
+redis-cli # optional - for direct Redis CLI access
