@@ -39,42 +39,26 @@ New to memory gardens? Check out [Nyro's Memory Garden Adventure](docs/TUTORIAL.
 - Environment variables set in `.env` file
 
 ### Available Scripts
-The `scripts` directory contains utilities for interacting with the Redis instance:
 
-- `set-key.sh`: Store a value in Redis
-  ```bash
-  ./scripts/set-key.sh <key> "<value>"
-  ```
+#### Redis Streams (Time-Series & Event Data)
+Nyro uses Redis Streams as its primary mechanism for storing time-series data, events, and memory garden entries. See [Stream Documentation](docs/STREAMS.md) for detailed usage and patterns.
 
-- `get-key.sh`: Retrieve a value from Redis
-  ```bash
-  ./scripts/get-key.sh <key>
-  ```
+```bash
+# Add an entry to a stream
+./scripts/stream-add.sh garden.memory plant_id "tomato_1" action "watering"
 
-- `del-key.sh`: Delete a key from Redis
-  ```bash
-  ./scripts/del-key.sh <key>
-  ```
+# Read from a stream
+./scripts/stream-read.sh garden.memory 10  # last 10 entries
+```
 
-- `push-list.sh`: Add an element to a Redis list
-  ```bash
-  ./scripts/push-list.sh <list-name> "<element>"
-  ```
+#### Basic Redis Operations
+The `scripts` directory also contains utilities for basic Redis operations:
 
-- `read-list.sh`: Read elements from a Redis list
-  ```bash
-  ./scripts/read-list.sh <list-name> [start] [stop]
-  ```
-
-- `stream-add.sh`: Add entries to a Redis stream (like a diary)
-  ```bash
-  ./scripts/stream-add.sh <stream-name> <field1> <value1> [field2 value2 ...]
-  ```
-
-- `stream-read.sh`: Read entries from a Redis stream
-  ```bash
-  ./scripts/stream-read.sh <stream-name> [count]
-  ```
+- `set-key.sh`: Store a value
+- `get-key.sh`: Retrieve a value
+- `del-key.sh`: Delete a key
+- `push-list.sh`: Add to a list
+- `read-list.sh`: Read from a list
 
 ## API Documentation
 See `openapi_api4redis.yaml` for the complete API specification.
