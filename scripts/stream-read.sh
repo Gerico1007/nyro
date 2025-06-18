@@ -41,16 +41,50 @@ COUNT="${2:-10}"  # Default to 10 entries if not specified
 echo "Reading up to $COUNT entries from stream $STREAM_KEY"
 
 # Parse REDIS_URL to extract connection details
-# Expected format: rediss://default:password@host:port
-if [[ "$REDIS_URL" =~ rediss?://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
+# Handle different URL formats
+REDIS_SCHEME=$(echo "$REDIS_URL" | sed -n 's,^\([a-z\-]*\)://.*,\1,p')
+URI_BODY=$(echo "$REDIS_URL" | sed -n 's,^[a-z\-]*://,,p')
+
+# Defaults
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_USER=""
+REDIS_PASS=""
+
+# Parse different URL formats
+if [[ "$URI_BODY" =~ ^([^:@/]*):([^@]*)@([^:/]+):([0-9]+) ]]; then
+    # username:password@host:port
     REDIS_USER="${BASH_REMATCH[1]}"
     REDIS_PASS="${BASH_REMATCH[2]}"
     REDIS_HOST="${BASH_REMATCH[3]}"
     REDIS_PORT="${BASH_REMATCH[4]}"
-    echo "Connecting to Redis at $REDIS_HOST:$REDIS_PORT as $REDIS_USER"
-else
-    echo "Error: Invalid REDIS_URL format. Expected: redis[s]://user:pass@host:port"
-    exit 1
+elif [[ "$URI_BODY" =~ ^:([^@]*)@([^:/]+):([0-9]+) ]]; then
+    # :password@host:port
+    REDIS_PASS="${BASH_REMATCH[1]}"
+    REDIS_HOST="${BASH_REMATCH[2]}"
+    REDIS_PORT="${BASH_REMATCH[3]}"
+elif [[ "$URI_BODY" =~ ^([^@]+)@([^:/]+):([0-9]+) ]]; then
+    # password@host:port
+    REDIS_PASS="${BASH_REMATCH[1]}"
+    REDIS_HOST="${BASH_REMATCH[2]}"
+    REDIS_PORT="${BASH_REMATCH[3]}"
+elif [[ "$URI_BODY" =~ ^([^:/]+):([0-9]+) ]]; then
+    # host:port
+    REDIS_HOST="${BASH_REMATCH[1]}"
+    REDIS_PORT="${BASH_REMATCH[2]}"
 fi
 
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASS" --no-auth-warning XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
+# Build CLI args
+CLI_ARGS=()
+if [ -n "$REDIS_HOST" ]; then
+    CLI_ARGS+=(-h "$REDIS_HOST")
+fi
+if [ -n "$REDIS_PORT" ]; then
+    CLI_ARGS+=(-p "$REDIS_PORT")
+fi
+if [ -n "$REDIS_PASS" ]; then
+    CLI_ARGS+=(-a "$REDIS_PASS")
+fi
+
+echo "Connecting to Redis at $REDIS_HOST:$REDIS_PORT"
+redis-cli "${CLI_ARGS[@]}" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"

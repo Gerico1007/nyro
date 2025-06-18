@@ -34,8 +34,6 @@ if redis-cli --help 2>&1 | grep -q -- '--tls'; then
     SUPPORTS_TLS=1
 else
     SUPPORTS_TLS=0
-    echo "Warning: Your redis-cli version $REDIS_VERSION does not support TLS."
-    echo "For secure connections, please upgrade to Redis 6.0+ with TLS support."
 fi
 
 if [ "$#" -lt 3 ]; then
@@ -131,5 +129,7 @@ done
 echo "Connecting: redis-cli ${CLI_ARGS[*]}"
 echo "Inserting into stream '$STREAM_KEY' with fields: ${FIELDVALS[*]}"
 
-redis-cli "${CLI_ARGS[@]}" XADD "$STREAM_KEY" * "${FIELDVALS[@]}"
+set -x  # Enable command tracing
+redis-cli "${CLI_ARGS[@]}" XADD "$STREAM_KEY" '*' "${FIELDVALS[@]}"
+set +x  # Disable command tracing
 
