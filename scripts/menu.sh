@@ -1,5 +1,7 @@
 #!/bin/bash
-source ../.env
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "${SCRIPT_DIR}/../.env"
 
 echo "Nyro Redis Utilities Menu"
 echo "------------------------"
@@ -20,30 +22,30 @@ while true; do
         1)
             read -p "Enter key: " key
             read -p "Enter value: " value
-            ./set-key.sh "$key" "$value"
+            "${SCRIPT_DIR}/set-key.sh" "$key" "$value"
             ;;
         2)
             read -p "Enter key to get: " key
-            ./get-key.sh "$key"
+            "${SCRIPT_DIR}/get-key.sh" "$key"
             ;;
         3)
             read -p "Enter key to delete: " key
-            ./del-key.sh "$key"
+            "${SCRIPT_DIR}/del-key.sh" "$key"
             ;;
         4)
             read -p "Enter list name: " list
             read -p "Enter element: " element
-            ./push-list.sh "$list" "$element"
+            "${SCRIPT_DIR}/push-list.sh" "$list" "$element"
             ;;
         5)
             read -p "Enter list name: " list
             read -p "Enter start index (default 0): " start
             read -p "Enter stop index (default 10): " stop
-            ./read-list.sh "$list" "${start:-0}" "${stop:-10}"
+            "${SCRIPT_DIR}/read-list.sh" "$list" "${start:-0}" "${stop:-10}"
             ;;
         6)
             read -p "Enter pattern to search (default *): " pattern
-            ./scan-garden.sh "${pattern:-*}"
+            "${SCRIPT_DIR}/scan-garden.sh" "${pattern:-*}"
             ;;
         7)
             read -p "Enter diary name (default garden.diary): " diary
