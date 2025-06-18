@@ -11,8 +11,8 @@ echo "3) Delete a key"
 echo "4) Push to list"
 echo "5) Read from list"
 echo "6) Look around the garden (SCAN)"
-echo "7) Write in garden diary (STREAM ADD)"
-echo "8) Read garden diary (STREAM READ)"
+echo "7) Add stream entry (with timestamp)"
+echo "8) Read stream entries"
 echo "q) Quit"
 echo
 
@@ -53,19 +53,25 @@ while true; do
             read -p "Enter mood (optional, press enter to skip): " mood
             read -p "Enter any extra details (optional, press enter to skip): " details
             
-            # Build command with mandatory fields
-            CMD="./stream-add.sh \"${diary:-garden.diary}\" \"event\" \"$event\""
+            # Use arrays to properly handle arguments with spaces
+            args=("${SCRIPT_DIR}/stream-add.sh" "${diary:-garden.diary}")
+            
+            # Add mandatory field
+            args+=("event" "$event")
             
             # Add optional fields if provided
             if [ -n "$mood" ]; then
-                CMD="$CMD \"mood\" \"$mood\""
+                args+=("mood" "$mood")
             fi
             if [ -n "$details" ]; then
-                CMD="$CMD \"details\" \"$details\""
+                args+=("details" "$details")
             fi
             
-            # Execute the command
-            eval $CMD
+            # Add timestamp
+            args+=("timestamp" "$(date -u +%FT%TZ)")
+            
+            # Execute the command using array
+            "${args[@]}"
             ;;
         8)
             read -p "Enter diary name (default garden.diary): " diary
