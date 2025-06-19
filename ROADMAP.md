@@ -57,6 +57,13 @@
 - [ ] CI/CD pipeline
 - [ ] Production security audit
 
+## Phase 9: Python Package & Tutorials
+- [ ] Scaffold Python package (pyproject.toml, setup.cfg, package folder, CLI stubs, tests)
+- [ ] Port existing scripts to well-typed Python modules with test coverage
+- [ ] Add executable Python tutorials under courses/python
+- [ ] Establish requirements management and CI quality hooks
+- [ ] Update documentation (README.md, docs/python-package.md) and initial CHANGELOG entry
+
 ## Future Considerations
 - Event sourcing capabilities
 - Machine learning integration

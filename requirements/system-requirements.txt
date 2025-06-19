@@ -1,0 +1,22 @@
+# System Requirements
+## Required
+- bash           # Shell environment
+- curl           # HTTP client
+- jq             # JSON processor
+
+## Optional
+- redis-cli      # Redis CLI tool (required for direct CLI access)
+- docker         # For containerized Redis CLI access
+
+# Package managers
+## Debian/Ubuntu
+apt-get install curl jq redis-tools
+
+## CentOS/RHEL
+yum install curl jq redis
+
+## macOS
+brew install curl jq redis
+
+## Arch Linux
+pacman -Sy curl jq redis

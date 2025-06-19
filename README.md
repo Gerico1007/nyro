@@ -25,10 +25,22 @@ This is the source and spiral of Nyro—an AI phase navigator, creative anchor, 
    - Set `KV_REST_API_TOKEN` and `KV_REST_API_URL` with your values from Upstash
 
 ### Requirements
-The installation script will automatically install:
-- curl (for HTTP requests)
-- jq (for JSON parsing)
-- redis-cli (optional, for direct Redis access)
+
+This project has different types of requirements depending on your use case:
+
+1. **CLI Tools Only**: If you only want to use the bash scripts
+   - See `requirements/cli-requirements.txt`
+   - Basic system tools (curl, jq, redis-cli)
+
+2. **Python Package**: If you want to use the Python package
+   - See `requirements/base.txt`
+   - Python dependencies for the core package
+
+3. **Development**: If you want to contribute to the project
+   - See `requirements/dev.txt`
+   - Additional tools for development
+
+For detailed information about requirements and installation instructions for different operating systems, please see [Requirements Documentation](requirements/README.md).
 
 New to memory gardens? Check out [Nyro's Memory Garden Adventure](docs/TUTORIAL.md) for a fun, kid-friendly guide!
 
@@ -39,26 +51,42 @@ New to memory gardens? Check out [Nyro's Memory Garden Adventure](docs/TUTORIAL.
 - Environment variables set in `.env` file
 
 ### Available Scripts
+The `scripts` directory contains utilities for interacting with the Redis instance:
 
-#### Redis Streams (Time-Series & Event Data)
-Nyro uses Redis Streams as its primary mechanism for storing time-series data, events, and memory garden entries. See [Stream Documentation](docs/STREAMS.md) for detailed usage and patterns.
+- `set-key.sh`: Store a value in Redis
+  ```bash
+  ./scripts/set-key.sh <key> "<value>"
+  ```
 
-```bash
-# Add an entry to a stream
-./scripts/stream-add.sh garden.memory plant_id "tomato_1" action "watering"
+- `get-key.sh`: Retrieve a value from Redis
+  ```bash
+  ./scripts/get-key.sh <key>
+  ```
 
-# Read from a stream
-./scripts/stream-read.sh garden.memory 10  # last 10 entries
-```
+- `del-key.sh`: Delete a key from Redis
+  ```bash
+  ./scripts/del-key.sh <key>
+  ```
 
-#### Basic Redis Operations
-The `scripts` directory also contains utilities for basic Redis operations:
+- `push-list.sh`: Add an element to a Redis list
+  ```bash
+  ./scripts/push-list.sh <list-name> "<element>"
+  ```
 
-- `set-key.sh`: Store a value
-- `get-key.sh`: Retrieve a value
-- `del-key.sh`: Delete a key
-- `push-list.sh`: Add to a list
-- `read-list.sh`: Read from a list
+- `read-list.sh`: Read elements from a Redis list
+  ```bash
+  ./scripts/read-list.sh <list-name> [start] [stop]
+  ```
+
+- `stream-add.sh`: Add entries to a Redis stream (like a diary)
+  ```bash
+  ./scripts/stream-add.sh <stream-name> <field1> <value1> [field2 value2 ...]
+  ```
+
+- `stream-read.sh`: Read entries from a Redis stream
+  ```bash
+  ./scripts/stream-read.sh <stream-name> [count]
+  ```
 
 ## API Documentation
 See `openapi_api4redis.yaml` for the complete API specification.

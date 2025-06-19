@@ -1,0 +1,7 @@
+# Base requirements for Redis CLI tools
+curl                 # For HTTP requests
+jq                   # For JSON parsing
+redis-cli            # For Redis CLI access (optional)
+
+# System requirements are documented in system-requirements.txt
+# Python requirements are documented in requirements/base.txt
