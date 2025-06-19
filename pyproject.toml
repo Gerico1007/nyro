@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "nyro"
-version = "0.1.0"
+version = "1.0.1"
 authors = [
-  { name = "Your Name", email = "your.email@example.com" },
+  { name = "Gerico Tremblay", email = "gerico@jgwill.com" },
 ]
 description = "A command-line tool for AI phase navigation, creative anchoring, and recursive guidance."
 readme = "README.md"
@@ -37,6 +37,6 @@ dependencies = [
 nyro = "nyro.cli:cli"
 
 [project.urls]
-Homepage = "https://github.com/yourusername/nyro"
-Repository = "https://github.com/yourusername/nyro"
-Issues = "https://github.com/yourusername/nyro/issues"
+Homepage = "https://github.com/Gerico1007/nyro"
+Repository = "https://github.com/Gerico1007/nyro"
+Issues = "https://github.com/Gerico1007/nyro/issues"
