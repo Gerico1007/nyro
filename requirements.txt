@@ -1,3 +1,5 @@
-curl
-jq # for JSON parsing
-redis-cli # optional - for direct Redis CLI access
+click>=8.0
+redis>=4.0
+requests>=2.28
+pydantic>=1.8
+pydantic-settings>=2.0
