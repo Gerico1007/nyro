@@ -51,32 +51,29 @@ while true; do
             read -p "Enter diary name (default garden.diary): " diary
             read -p "Enter what happened: " event
             read -p "Enter mood (optional, press enter to skip): " mood
-            read -p "Enter any extra details (optional, press enter to skip): " details
+            echo "Enter any extra details (optional, end with a line containing only EOF):"
+            details=""
+            while IFS= read -r line; do
+                [ "$line" = "EOF" ] && break
+                details="${details}${line}\n"
+            done
+            details="${details%\\n}"
             
-            # Use arrays to properly handle arguments with spaces
-            args=("${SCRIPT_DIR}/stream-add.sh" "${diary:-garden.diary}")
             
-            # Add mandatory field
             args+=("event" "$event")
-            
-            # Add optional fields if provided
             if [ -n "$mood" ]; then
                 args+=("mood" "$mood")
             fi
             if [ -n "$details" ]; then
                 args+=("details" "$details")
             fi
-            
-            # Add timestamp
             args+=("timestamp" "$(date -u +%FT%TZ)")
-            
-            # Execute the command using array
             "${args[@]}"
             ;;
         8)
             read -p "Enter diary name (default garden.diary): " diary
             read -p "How many entries to read? (default 10): " count
-            ./stream-read.sh "${diary:-garden.diary}" "${count:-10}"
+            "${SCRIPT_DIR}/stream-read.sh" "${diary:-garden.diary}" "${count:-10}"
             ;;
         q|Q)
             echo "Goodbye!"
