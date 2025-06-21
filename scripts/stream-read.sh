@@ -85,6 +85,7 @@ fi
 if [ -n "$REDIS_PASS" ]; then
     CLI_ARGS+=(-a "$REDIS_PASS")
 fi
-
-echo "Connecting to Redis at $REDIS_HOST:$REDIS_PORT"
-redis-cli "${CLI_ARGS[@]}" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
+# Use redis-cli-wrapper.sh instead of redis-cli directly
+WRAPPER_SCRIPT="$DIR/redis-cli-wrapper.sh"
+echo "Connecting to Redis at $REDIS_HOST:$REDIS_PORT (via Docker wrapper)"
+"$WRAPPER_SCRIPT" "${CLI_ARGS[@]}" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
