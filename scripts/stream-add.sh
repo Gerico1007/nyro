@@ -94,14 +94,7 @@ fi
 # Compose CLI args
 CLI_ARGS=()
 if [ "$REDIS_TLS" = "1" ]; then
-    if [ "$SUPPORTS_TLS" = "1" ]; then
-        CLI_ARGS+=(--tls)
-    else
-        echo "Error: Your redis-cli does not support TLS (--tls flag)."
-        echo "Current version: $REDIS_VERSION"
-        echo "Please upgrade to Redis 6.0+ with TLS support, or use a non-TLS connection."
-        exit 1
-    fi
+    CLI_ARGS+=(--tls)
 fi
 if [ -n "$REDIS_HOST" ]; then
     CLI_ARGS+=(-h "$REDIS_HOST")
@@ -112,24 +105,21 @@ fi
 if [ -n "$REDIS_PASS" ]; then
     CLI_ARGS+=(-a "$REDIS_PASS")
 fi
-
 # For UNIX socket
 if [ -n "$REDIS_SOCKET" ]; then
     CLI_ARGS=(-s "$REDIS_SOCKET")
 fi
-
 # Build field-value pairs (as arguments)
 FIELDVALS=()
 while [ "$#" -gt 1 ]; do
     FIELDVALS+=("$1" "$2")
     shift 2
 done
-
-# Final command
-echo "Connecting: redis-cli ${CLI_ARGS[*]}"
+# Use redis-cli-wrapper.sh instead of redis-cli directly
+WRAPPER_SCRIPT="$DIR/redis-cli-wrapper.sh"
+echo "Connecting: $WRAPPER_SCRIPT ${CLI_ARGS[*]}"
 echo "Inserting into stream '$STREAM_KEY' with fields: ${FIELDVALS[*]}"
-
 set -x  # Enable command tracing
-redis-cli "${CLI_ARGS[@]}" XADD "$STREAM_KEY" '*' "${FIELDVALS[@]}"
+"$WRAPPER_SCRIPT" "${CLI_ARGS[@]}" XADD "$STREAM_KEY" '*' "${FIELDVALS[@]}"
 set +x  # Disable command tracing
 
