@@ -13,6 +13,7 @@ echo "5) Read from list"
 echo "6) Look around the garden (SCAN)"
 echo "7) Write in garden diary (STREAM ADD) - Now with location!"
 echo "8) Read garden diary (STREAM READ)"
+echo "9) Show entries by location"
 echo "q) Quit"
 echo
 
@@ -74,6 +75,9 @@ while true; do
             read -p "Enter diary name (default garden.diary): " diary
             read -p "How many entries to read? (default 10): " count
             "${SCRIPT_DIR}/stream-read.sh" "${diary:-garden.diary}" "${count:-10}"
+            ;;
+        9)
+            "${SCRIPT_DIR}/show-by-location.sh"
             ;;
         q|Q)
             echo "Goodbye!"
