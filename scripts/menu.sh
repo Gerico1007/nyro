@@ -11,7 +11,7 @@ echo "3) Delete a key"
 echo "4) Push to list"
 echo "5) Read from list"
 echo "6) Look around the garden (SCAN)"
-echo "7) Write in garden diary (STREAM ADD)"
+echo "7) Write in garden diary (STREAM ADD) - Now with location!"
 echo "8) Read garden diary (STREAM READ)"
 echo "q) Quit"
 echo
@@ -51,6 +51,7 @@ while true; do
             read -p "Enter diary name (default garden.diary): " diary
             read -p "Enter what happened: " event
             read -p "Enter mood (optional, press enter to skip): " mood
+            read -p "Enter location (optional, press enter to skip): " location
             read -p "Enter any extra details (optional, press enter to skip): " details
             
             # Build argument list with proper quoting
@@ -58,6 +59,9 @@ while true; do
             ARGS+=("event" "$event")
             if [ -n "$mood" ]; then
                 ARGS+=("mood" "$mood")
+            fi
+            if [ -n "$location" ]; then
+                ARGS+=("location" "$location")
             fi
             if [ -n "$details" ]; then
                 ARGS+=("details" "$details")
