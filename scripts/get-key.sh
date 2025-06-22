@@ -29,8 +29,8 @@ KEY="$1"
 # Use Redis CLI with TLS support
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
     echo "Getting key '$KEY'..."
-    redis-cli --tls -u "$REDIS_URL" GET "$KEY"
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning GET "$KEY"
 else
     echo "Getting key '$KEY'..."
-    redis-cli -u "$REDIS_URL" GET "$KEY"
+    redis-cli -u "$REDIS_URL" --no-auth-warning GET "$KEY"
 fi

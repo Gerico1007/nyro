@@ -25,8 +25,8 @@ PATTERN="${1:-*}"
 # Use Redis CLI with TLS support
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
     echo "Scanning keys with pattern '$PATTERN'..."
-    redis-cli --tls -u "$REDIS_URL" --scan --pattern "$PATTERN"
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning --scan --pattern "$PATTERN"
 else
     echo "Scanning keys with pattern '$PATTERN'..."
-    redis-cli -u "$REDIS_URL" --scan --pattern "$PATTERN"
+    redis-cli -u "$REDIS_URL" --no-auth-warning --scan --pattern "$PATTERN"
 fi

@@ -30,8 +30,8 @@ ELEMENT="$2"
 # Use Redis CLI with TLS support
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
     echo "Pushing to list '$LIST_NAME'..."
-    redis-cli --tls -u "$REDIS_URL" LPUSH "$LIST_NAME" "$ELEMENT"
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning LPUSH "$LIST_NAME" "$ELEMENT"
 else
     echo "Pushing to list '$LIST_NAME'..."
-    redis-cli -u "$REDIS_URL" LPUSH "$LIST_NAME" "$ELEMENT"
+    redis-cli -u "$REDIS_URL" --no-auth-warning LPUSH "$LIST_NAME" "$ELEMENT"
 fi

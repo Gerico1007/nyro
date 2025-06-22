@@ -43,8 +43,8 @@ echo "Reading up to $COUNT entries from stream $STREAM_KEY"
 # Use REDIS_URL directly with TLS support
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
     echo "Connecting to Redis with TLS..."
-    redis-cli --tls -u "$REDIS_URL" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
 else
     echo "Connecting to Redis..."
-    redis-cli -u "$REDIS_URL" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
+    redis-cli -u "$REDIS_URL" --no-auth-warning XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
 fi

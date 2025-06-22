@@ -33,8 +33,8 @@ STOP="${3:-10}"
 # Use Redis CLI with TLS support
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
     echo "Reading list '$LIST_NAME'..."
-    redis-cli --tls -u "$REDIS_URL" LRANGE "$LIST_NAME" "$START" "$STOP"
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning LRANGE "$LIST_NAME" "$START" "$STOP"
 else
     echo "Reading list '$LIST_NAME'..."
-    redis-cli -u "$REDIS_URL" LRANGE "$LIST_NAME" "$START" "$STOP"
+    redis-cli -u "$REDIS_URL" --no-auth-warning LRANGE "$LIST_NAME" "$START" "$STOP"
 fi

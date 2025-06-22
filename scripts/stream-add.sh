@@ -154,5 +154,5 @@ echo "Connecting to Redis..."
 echo "Inserting into stream '$STREAM_KEY' with fields: ${FIELDVALS[*]}"
 
 # Execute redis-cli directly with proper array expansion
-redis-cli "${CLI_ARGS[@]}" XADD "$STREAM_KEY" "*" "${FIELDVALS[@]}"
+redis-cli "${CLI_ARGS[@]}" --no-auth-warning XADD "$STREAM_KEY" "*" "${FIELDVALS[@]}"
 

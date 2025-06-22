@@ -30,8 +30,8 @@ VALUE="$2"
 # Use Redis CLI with TLS support
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
     echo "Setting key '$KEY'..."
-    redis-cli --tls -u "$REDIS_URL" SET "$KEY" "$VALUE"
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning SET "$KEY" "$VALUE"
 else
     echo "Setting key '$KEY'..."
-    redis-cli -u "$REDIS_URL" SET "$KEY" "$VALUE"
+    redis-cli -u "$REDIS_URL" --no-auth-warning SET "$KEY" "$VALUE"
 fi
