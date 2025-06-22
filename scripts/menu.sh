@@ -53,8 +53,9 @@ while true; do
             read -p "Enter mood (optional, press enter to skip): " mood
             read -p "Enter any extra details (optional, press enter to skip): " details
             
-            # Build argument list
-            ARGS=("${SCRIPT_DIR}/stream-add.sh" "${diary:-garden.diary}" "event" "$event")
+            # Build argument list with proper quoting
+            ARGS=("${SCRIPT_DIR}/stream-add.sh" "${diary:-garden.diary}")
+            ARGS+=("event" "$event")
             if [ -n "$mood" ]; then
                 ARGS+=("mood" "$mood")
             fi

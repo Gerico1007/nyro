@@ -40,17 +40,11 @@ COUNT="${2:-10}"  # Default to 10 entries if not specified
 # Use XRANGE to read from the stream
 echo "Reading up to $COUNT entries from stream $STREAM_KEY"
 
-# Parse REDIS_URL to extract connection details
-# Expected format: rediss://default:password@host:port
-if [[ "$REDIS_URL" =~ rediss?://([^:]+):([^@]+)@([^:]+):([0-9]+) ]]; then
-    REDIS_USER="${BASH_REMATCH[1]}"
-    REDIS_PASS="${BASH_REMATCH[2]}"
-    REDIS_HOST="${BASH_REMATCH[3]}"
-    REDIS_PORT="${BASH_REMATCH[4]}"
-    echo "Connecting to Redis at $REDIS_HOST:$REDIS_PORT as $REDIS_USER"
+# Use REDIS_URL directly with TLS support
+if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
+    echo "Connecting to Redis with TLS..."
+    redis-cli --tls -u "$REDIS_URL" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
 else
-    echo "Error: Invalid REDIS_URL format. Expected: redis[s]://user:pass@host:port"
-    exit 1
+    echo "Connecting to Redis..."
+    redis-cli -u "$REDIS_URL" XRANGE "$STREAM_KEY" - + COUNT "$COUNT"
 fi
-
-redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASS" --no-auth-warning XRANGE "$STREAM_KEY" - + COUNT "$COUNT"

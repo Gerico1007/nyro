@@ -140,20 +140,19 @@ fi
 
 # Build field-value pairs (as arguments)
 FIELDVALS=()
-while [ "$#" -gt 1 ]; do
-    FIELDVALS+=("$1" "$2")
+
+# Process arguments in pairs
+while [ "$#" -ge 2 ]; do
+    field="$1"
+    value="$2"
+    FIELDVALS+=("$field" "$value")
     shift 2
 done
 
-# Debug output
-echo "DEBUG: Arguments to redis-cli:"
-printf '  [%s]\n' "${CLI_ARGS[@]}"
-echo "  XADD $STREAM_KEY * ${FIELDVALS[*]}"
-printf '  FIELDVALS: [%s]\n' "${FIELDVALS[@]}"
-
 # Final command
-echo "Connecting: redis-cli ${CLI_ARGS[*]}"
+echo "Connecting to Redis..."
 echo "Inserting into stream '$STREAM_KEY' with fields: ${FIELDVALS[*]}"
 
-redis-cli "${CLI_ARGS[@]}" XADD "$STREAM_KEY" * "${FIELDVALS[@]}"
+# Execute redis-cli directly with proper array expansion
+redis-cli "${CLI_ARGS[@]}" XADD "$STREAM_KEY" "*" "${FIELDVALS[@]}"
 
