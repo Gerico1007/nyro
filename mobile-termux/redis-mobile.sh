@@ -43,38 +43,28 @@ redis_rest_call() {
     fi
 }
 
-# Function to write diary entry
+# Function to write diary entry (Upstash expects flat array)
 write_diary() {
     local diary_name="${1:-$DEFAULT_DIARY}"
-    
     echo "📝 Writing in diary: $diary_name"
     echo ""
-    
     read -p "Enter what happened: " event
     read -p "Enter mood (optional, press enter to skip): " mood
     read -p "Enter location (optional, press enter to skip): " location
     read -p "Enter any extra details (optional, press enter to skip): " details
-    
-    # Build the stream entry data
-    local stream_data="{\"event\":\"$event\""
-    
+    # Build the stream entry as a flat array
+    local stream_data="[\"event\",\"$event\""
     if [ -n "$mood" ]; then
-        stream_data="${stream_data},\"mood\":\"$mood\""
+        stream_data=",$stream_data,\"mood\",\"$mood\""
     fi
-    
     if [ -n "$location" ]; then
-        stream_data="${stream_data},\"location\":\"$location\""
+        stream_data="$stream_data,\"location\",\"$location\""
     fi
-    
     if [ -n "$details" ]; then
-        stream_data="${stream_data},\"details\":\"$details\""
+        stream_data="$stream_data,\"details\",\"$details\""
     fi
-    
-    stream_data="${stream_data}}"
-    
-    # Add to stream using REST API
+    stream_data="$stream_data]"
     local result=$(redis_rest_call "POST" "/xadd/$diary_name" "$stream_data")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error adding entry: $result"
     else
@@ -83,48 +73,39 @@ write_diary() {
     fi
 }
 
-# Function to read diary entries
+# Function to read diary entries (handle array format)
 read_diary() {
     local diary_name="${1:-$DEFAULT_DIARY}"
     local count="${2:-10}"
-    
     echo "📖 Reading diary: $diary_name (last $count entries)"
     echo ""
-    
-    # Get stream entries using REST API
     local result=$(redis_rest_call "GET" "/xrange/$diary_name/-/+?count=$count")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error reading diary: $result"
     else
-        # Parse and display entries nicely
-        echo "$result" | jq -r '.[] | "📅 \(.[0])\n\(.[1] | to_entries | map("  \(.key): \(.value)") | join("\n"))\n"'
+        echo "$result" | jq -r '
+          .[] | "📅 \(.[0])" ,
+          (.[1] | to_entries | map("  \(.value)") | join("\n")) , ""
+        '
     fi
 }
 
-# Function to show entries by location
+# Function to show entries by location (handle array format)
 show_by_location() {
     local diary_name="${1:-$DEFAULT_DIARY}"
-    
     echo "🗺️  Showing entries by location"
     echo ""
-    
-    # Get all entries to extract locations
     local result=$(redis_rest_call "GET" "/xrange/$diary_name/-/+?count=100")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error reading diary: $result"
         return
     fi
-    
-    # Extract unique locations
-    local locations=$(echo "$result" | jq -r '.[] | .[1] | select(.location) | .location' | sort | uniq)
-    
+    # Extract unique locations from array format
+    local locations=$(echo "$result" | jq -r '.[] | .[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location") | $arr[2*.+1]] | .[]' | sort | uniq)
     if [ -z "$locations" ]; then
         echo "📭 No entries with location found"
         return
     fi
-    
     echo "📍 Available locations:"
     local i=1
     local location_array=()
@@ -135,21 +116,17 @@ show_by_location() {
             ((i++))
         fi
     done <<< "$locations"
-    
     echo ""
     read -p "Select location (1-$((i-1))): " choice
-    
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le $((i-1)) ]; then
         local selected_location="${location_array[$((choice-1))]}"
         echo ""
         echo "📍 Entries from: $selected_location"
         echo ""
-        
-        # Show entries for selected location
         echo "$result" | jq -r --arg loc "$selected_location" '
-            .[] | 
-            select(.[1].location == $loc) | 
-            "📅 \(.[0])\n\(.[1] | to_entries | map("  \(.key): \(.value)") | join("\n"))\n"
+          .[] | select(.[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location" and $arr[2*.+1] == $loc)]) |
+          "📅 \(.[0])" ,
+          (.[1] | to_entries | map("  \(.value)") | join("\n")) , ""
         '
     else
         echo "❌ Invalid selection"
@@ -160,9 +137,7 @@ show_by_location() {
 set_key() {
     read -p "Enter key: " key
     read -p "Enter value: " value
-    
     local result=$(redis_rest_call "POST" "/set/$key" "{\"value\":\"$value\"}")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error setting key: $result"
     else
@@ -170,25 +145,23 @@ set_key() {
     fi
 }
 
-# Function to get a key
+# Function to get a key (parse value)
 get_key() {
     read -p "Enter key to get: " key
-    
     local result=$(redis_rest_call "GET" "/get/$key")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error getting key: $result"
     else
-        echo "📦 Value: $result"
+        # Try to extract value
+        value=$(echo "$result" | jq -r '.result.value // .result // .value // .')
+        echo "📦 Value: $value"
     fi
 }
 
 # Function to delete a key
 delete_key() {
     read -p "Enter key to delete: " key
-    
     local result=$(redis_rest_call "DELETE" "/del/$key")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error deleting key: $result"
     else
@@ -196,18 +169,17 @@ delete_key() {
     fi
 }
 
-# Function to list keys
+# Function to list keys (fallback to raw if jq fails)
 list_keys() {
     read -p "Enter pattern (default *): " pattern
     pattern="${pattern:-*}"
-    
     local result=$(redis_rest_call "GET" "/scan/0/match/$pattern/count/100")
-    
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error listing keys: $result"
     else
-        echo "🔑 Keys matching '$pattern':"
-        echo "$result" | jq -r '.[1][]?'
+        if ! echo "$result" | jq -r '.[1][]?' 2>/dev/null; then
+            echo "$result"
+        fi
     fi
 }
 
@@ -225,9 +197,7 @@ while true; do
     echo "7) List all keys"
     echo "q) Quit"
     echo ""
-    
     read -p "Choose an option: " choice
-    
     case $choice in
         1)
             write_diary
