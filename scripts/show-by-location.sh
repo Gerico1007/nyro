@@ -29,8 +29,8 @@ else
     entries=$(redis-cli -u "$REDIS_URL" --no-auth-warning XRANGE "$diary_name" - + COUNT 100)
 fi
 
-# Extract all locations
-locations=$(echo "$entries" | grep -A1 'location' | grep -v 'location' | awk '{$1=$1};1' | sort | uniq)
+# Extract all full location phrases (not split by spaces)
+locations=$(echo "$entries" | awk '/location/ {getline; print $0}' | awk '{$1=$1};1' | sort | uniq)
 
 if [ -z "$locations" ]; then
     echo "No locations found in the stream."
@@ -40,24 +40,22 @@ fi
 echo "Available locations:"
 select loc in $locations; do
     if [ -n "$loc" ]; then
-        echo "Showing entries for location: $loc"
+        echo "\nShowing entries for location: $loc\n"
         break
     else
         echo "Invalid selection. Try again."
     fi
 done
 
-# Show entries for the selected location
+# Print full entries for the selected location
+awk_script='BEGIN {entry=""; found=0;}
+/^1\)/ {if (found) print entry "\n"; entry=$0; found=0; next}
+/location/ {getline; if ($0 == loc) found=1; entry=entry "\nlocation\n" $0; next}
+{entry=entry "\n" $0}
+END {if (found) print entry "\n";}'
+
 if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
-    redis-cli --tls -u "$REDIS_URL" --no-auth-warning XRANGE "$diary_name" - + COUNT 100 | awk -v loc="$loc" '
-    BEGIN {entry=""; show=0;}
-    /^1\)/ {entry=$0; show=0; next}
-    /location/ {getline; if ($0 ~ loc) show=1; else show=0; next}
-    {if (show) print entry "\n" $0;}'
+    redis-cli --tls -u "$REDIS_URL" --no-auth-warning XRANGE "$diary_name" - + COUNT 100 | awk -v loc="$loc" "$awk_script"
 else
-    redis-cli -u "$REDIS_URL" --no-auth-warning XRANGE "$diary_name" - + COUNT 100 | awk -v loc="$loc" '
-    BEGIN {entry=""; show=0;}
-    /^1\)/ {entry=$0; show=0; next}
-    /location/ {getline; if ($0 ~ loc) show=1; else show=0; next}
-    {if (show) print entry "\n" $0;}'
+    redis-cli -u "$REDIS_URL" --no-auth-warning XRANGE "$diary_name" - + COUNT 100 | awk -v loc="$loc" "$awk_script"
 fi 
