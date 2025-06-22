@@ -52,18 +52,27 @@ write_diary() {
     read -p "Enter mood (optional, press enter to skip): " mood
     read -p "Enter location (optional, press enter to skip): " location
     read -p "Enter any extra details (optional, press enter to skip): " details
-    # Build the stream entry as a flat array
-    local stream_data="[\"event\",\"$event\""
+
+    # Build the stream entry as a flat array, only including non-empty fields
+    local arr=()
+    arr+=("\"event\"")
+    arr+=("\"$event\"")
     if [ -n "$mood" ]; then
-        stream_data="$stream_data,\"mood\",\"$mood\""
+        arr+=("\"mood\"")
+        arr+=("\"$mood\"")
     fi
     if [ -n "$location" ]; then
-        stream_data="$stream_data,\"location\",\"$location\""
+        arr+=("\"location\"")
+        arr+=("\"$location\"")
     fi
     if [ -n "$details" ]; then
-        stream_data="$stream_data,\"details\",\"$details\""
+        arr+=("\"details\"")
+        arr+=("\"$details\"")
     fi
-    stream_data="$stream_data]"
+
+    # Join array with commas to form a valid JSON array
+    local stream_data="[$(IFS=,; echo "${arr[*]}")]"
+
     local result=$(redis_rest_call "POST" "/xadd/$diary_name" "$stream_data")
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error adding entry: $result"
