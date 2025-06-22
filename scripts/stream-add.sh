@@ -46,78 +46,96 @@ fi
 STREAM_KEY="$1"
 shift
 
-# Parse REDIS_URL
-REDIS_SCHEME=$(echo "$REDIS_URL" | sed -n 's,^\([a-z\-]*\)://.*,\1,p')
-URI_BODY=$(echo "$REDIS_URL" | sed -n 's,^[a-z\-]*://,,p')
-
-REDIS_TLS=0
-case "$REDIS_SCHEME" in
-    rediss) REDIS_TLS=1 ;;
-    redis) REDIS_TLS=0 ;;
-    redis-socket)
-        REDIS_SOCKET=$(echo "$URI_BODY" | cut -d'?' -f1)
-        ;;
-    *)
-        echo "Error: Unsupported Redis scheme: $REDIS_SCHEME"
-        exit 1
-        ;;
-esac
-
-# Defaults
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-REDIS_USER=""
-REDIS_PASS=""
-
-if [[ "$REDIS_SCHEME" == "redis-socket" ]]; then
-    :
-elif [[ "$URI_BODY" =~ ^([^:@/]*):([^@]*)@([^:/]+):([0-9]+) ]]; then
-    # username:password@host:port
-    REDIS_USER="${BASH_REMATCH[1]}"
-    REDIS_PASS="${BASH_REMATCH[2]}"
-    REDIS_HOST="${BASH_REMATCH[3]}"
-    REDIS_PORT="${BASH_REMATCH[4]}"
-elif [[ "$URI_BODY" =~ ^:([^@]*)@([^:/]+):([0-9]+) ]]; then
-    # :password@host:port
-    REDIS_PASS="${BASH_REMATCH[1]}"
-    REDIS_HOST="${BASH_REMATCH[2]}"
-    REDIS_PORT="${BASH_REMATCH[3]}"
-elif [[ "$URI_BODY" =~ ^([^@]+)@([^:/]+):([0-9]+) ]]; then
-    # password@host:port
-    REDIS_PASS="${BASH_REMATCH[1]}"
-    REDIS_HOST="${BASH_REMATCH[2]}"
-    REDIS_PORT="${BASH_REMATCH[3]}"
-elif [[ "$URI_BODY" =~ ^([^:/]+):([0-9]+) ]]; then
-    # host:port
-    REDIS_HOST="${BASH_REMATCH[1]}"
-    REDIS_PORT="${BASH_REMATCH[2]}"
-fi
-
-# Compose CLI args
-CLI_ARGS=()
-if [ "$REDIS_TLS" = "1" ]; then
-    if [ "$SUPPORTS_TLS" = "1" ]; then
-        CLI_ARGS+=(--tls)
+# Use REDIS_URL directly if available (preferred method for Docker)
+if [ -n "$REDIS_URL" ]; then
+    # Check if URL uses TLS
+    if [[ "$REDIS_URL" =~ ^rediss:// ]]; then
+        if [ "$SUPPORTS_TLS" = "1" ]; then
+            CLI_ARGS=(--tls -u "$REDIS_URL")
+        else
+            echo "Error: Your redis-cli does not support TLS (--tls flag)."
+            echo "Current version: $REDIS_VERSION"
+            echo "Please upgrade to Redis 6.0+ with TLS support, or use a non-TLS connection."
+            exit 1
+        fi
     else
-        echo "Error: Your redis-cli does not support TLS (--tls flag)."
-        echo "Current version: $REDIS_VERSION"
-        echo "Please upgrade to Redis 6.0+ with TLS support, or use a non-TLS connection."
-        exit 1
+        CLI_ARGS=(-u "$REDIS_URL")
     fi
-fi
-if [ -n "$REDIS_HOST" ]; then
-    CLI_ARGS+=(-h "$REDIS_HOST")
-fi
-if [ -n "$REDIS_PORT" ]; then
-    CLI_ARGS+=(-p "$REDIS_PORT")
-fi
-if [ -n "$REDIS_PASS" ]; then
-    CLI_ARGS+=(-a "$REDIS_PASS")
-fi
+else
+    # Fallback to parsing REDIS_URL (legacy method)
+    # Parse REDIS_URL
+    REDIS_SCHEME=$(echo "$REDIS_URL" | sed -n 's,^\([a-z\-]*\)://.*,\1,p')
+    URI_BODY=$(echo "$REDIS_URL" | sed -n 's,^[a-z\-]*://,,p')
 
-# For UNIX socket
-if [ -n "$REDIS_SOCKET" ]; then
-    CLI_ARGS=(-s "$REDIS_SOCKET")
+    REDIS_TLS=0
+    case "$REDIS_SCHEME" in
+        rediss) REDIS_TLS=1 ;;
+        redis) REDIS_TLS=0 ;;
+        redis-socket)
+            REDIS_SOCKET=$(echo "$URI_BODY" | cut -d'?' -f1)
+            ;;
+        *)
+            echo "Error: Unsupported Redis scheme: $REDIS_SCHEME"
+            exit 1
+            ;;
+    esac
+
+    # Defaults
+    REDIS_HOST=127.0.0.1
+    REDIS_PORT=6379
+    REDIS_USER=""
+    REDIS_PASS=""
+
+    if [[ "$REDIS_SCHEME" == "redis-socket" ]]; then
+        :
+    elif [[ "$URI_BODY" =~ ^([^:@/]*):([^@]*)@([^:/]+):([0-9]+) ]]; then
+        # username:password@host:port
+        REDIS_USER="${BASH_REMATCH[1]}"
+        REDIS_PASS="${BASH_REMATCH[2]}"
+        REDIS_HOST="${BASH_REMATCH[3]}"
+        REDIS_PORT="${BASH_REMATCH[4]}"
+    elif [[ "$URI_BODY" =~ ^:([^@]*)@([^:/]+):([0-9]+) ]]; then
+        # :password@host:port
+        REDIS_PASS="${BASH_REMATCH[1]}"
+        REDIS_HOST="${BASH_REMATCH[2]}"
+        REDIS_PORT="${BASH_REMATCH[3]}"
+    elif [[ "$URI_BODY" =~ ^([^@]+)@([^:/]+):([0-9]+) ]]; then
+        # password@host:port
+        REDIS_PASS="${BASH_REMATCH[1]}"
+        REDIS_HOST="${BASH_REMATCH[2]}"
+        REDIS_PORT="${BASH_REMATCH[3]}"
+    elif [[ "$URI_BODY" =~ ^([^:/]+):([0-9]+) ]]; then
+        # host:port
+        REDIS_HOST="${BASH_REMATCH[1]}"
+        REDIS_PORT="${BASH_REMATCH[2]}"
+    fi
+
+    # Compose CLI args
+    CLI_ARGS=()
+    if [ "$REDIS_TLS" = "1" ]; then
+        if [ "$SUPPORTS_TLS" = "1" ]; then
+            CLI_ARGS+=(--tls)
+        else
+            echo "Error: Your redis-cli does not support TLS (--tls flag)."
+            echo "Current version: $REDIS_VERSION"
+            echo "Please upgrade to Redis 6.0+ with TLS support, or use a non-TLS connection."
+            exit 1
+        fi
+    fi
+    if [ -n "$REDIS_HOST" ]; then
+        CLI_ARGS+=(-h "$REDIS_HOST")
+    fi
+    if [ -n "$REDIS_PORT" ]; then
+        CLI_ARGS+=(-p "$REDIS_PORT")
+    fi
+    if [ -n "$REDIS_PASS" ]; then
+        CLI_ARGS+=(-a "$REDIS_PASS")
+    fi
+
+    # For UNIX socket
+    if [ -n "$REDIS_SOCKET" ]; then
+        CLI_ARGS=(-s "$REDIS_SOCKET")
+    fi
 fi
 
 # Build field-value pairs (as arguments)
@@ -126,6 +144,12 @@ while [ "$#" -gt 1 ]; do
     FIELDVALS+=("$1" "$2")
     shift 2
 done
+
+# Debug output
+echo "DEBUG: Arguments to redis-cli:"
+printf '  [%s]\n' "${CLI_ARGS[@]}"
+echo "  XADD $STREAM_KEY * ${FIELDVALS[*]}"
+printf '  FIELDVALS: [%s]\n' "${FIELDVALS[@]}"
 
 # Final command
 echo "Connecting: redis-cli ${CLI_ARGS[*]}"

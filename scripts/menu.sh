@@ -53,24 +53,22 @@ while true; do
             read -p "Enter mood (optional, press enter to skip): " mood
             read -p "Enter any extra details (optional, press enter to skip): " details
             
-            # Build command with mandatory fields
-            CMD="./stream-add.sh \"${diary:-garden.diary}\" \"event\" \"$event\""
-            
-            # Add optional fields if provided
+            # Build argument list
+            ARGS=("${SCRIPT_DIR}/stream-add.sh" "${diary:-garden.diary}" "event" "$event")
             if [ -n "$mood" ]; then
-                CMD="$CMD \"mood\" \"$mood\""
+                ARGS+=("mood" "$mood")
             fi
             if [ -n "$details" ]; then
-                CMD="$CMD \"details\" \"$details\""
+                ARGS+=("details" "$details")
             fi
             
-            # Execute the command
-            eval $CMD
+            # Execute the command directly
+            "${ARGS[@]}"
             ;;
         8)
             read -p "Enter diary name (default garden.diary): " diary
             read -p "How many entries to read? (default 10): " count
-            ./stream-read.sh "${diary:-garden.diary}" "${count:-10}"
+            "${SCRIPT_DIR}/stream-read.sh" "${diary:-garden.diary}" "${count:-10}"
             ;;
         q|Q)
             echo "Goodbye!"
