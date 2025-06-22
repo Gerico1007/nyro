@@ -152,8 +152,14 @@ get_key() {
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error getting key: $result"
     else
-        value=$(echo "$result" | jq -r '.result.value // .result // .value // . 2>/dev/null')
-        if [ "$value" = "null" ] || [ -z "$value" ]; then
+        # Extract the inner value if it's a stringified JSON
+        value=$(echo "$result" | jq -r '.result' 2>/dev/null)
+        if [[ "$value" =~ ^\{.*\}$ ]]; then
+            # If value is a JSON object, extract .value
+            value=$(echo "$value" | jq -r '.value' 2>/dev/null)
+        fi
+        # Fallback if value is empty
+        if [ -z "$value" ] || [ "$value" = "null" ]; then
             value="$result"
         fi
         echo "📦 Value: $value"
