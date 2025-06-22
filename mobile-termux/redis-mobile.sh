@@ -55,7 +55,7 @@ write_diary() {
     # Build the stream entry as a flat array
     local stream_data="[\"event\",\"$event\""
     if [ -n "$mood" ]; then
-        stream_data=",$stream_data,\"mood\",\"$mood\""
+        stream_data="$stream_data,\"mood\",\"$mood\""
     fi
     if [ -n "$location" ]; then
         stream_data="$stream_data,\"location\",\"$location\""
@@ -84,8 +84,8 @@ read_diary() {
         echo "❌ Error reading diary: $result"
     else
         echo "$result" | jq -r '
-          .[] | "📅 \(.[0])" ,
-          (.[1] | to_entries | map("  \(.value)") | join("\n")) , ""
+          .[] | "📅 \(.[0])",
+          (.[1] | @tsv | gsub("\t"; "\n  ")) , ""
         '
     fi
 }
@@ -125,8 +125,8 @@ show_by_location() {
         echo ""
         echo "$result" | jq -r --arg loc "$selected_location" '
           .[] | select(.[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location" and $arr[2*.+1] == $loc)]) |
-          "📅 \(.[0])" ,
-          (.[1] | to_entries | map("  \(.value)") | join("\n")) , ""
+          "📅 \(.[0])",
+          (.[1] | @tsv | gsub("\t"; "\n  ")) , ""
         '
     else
         echo "❌ Invalid selection"
@@ -152,8 +152,10 @@ get_key() {
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error getting key: $result"
     else
-        # Try to extract value
-        value=$(echo "$result" | jq -r '.result.value // .result // .value // .')
+        value=$(echo "$result" | jq -r '.result.value // .result // .value // . 2>/dev/null')
+        if [ "$value" = "null" ] || [ -z "$value" ]; then
+            value="$result"
+        fi
         echo "📦 Value: $value"
     fi
 }
