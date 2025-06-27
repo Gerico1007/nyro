@@ -92,7 +92,7 @@ if [ "$1" = "--script" ] || [ "$1" = "-s" ]; then
     
     # Execute script inside container with volume mount
     docker run -it --rm \
-        -v "$(pwd):/workspace" \
+        -v "$(dirname "$0")/..:/workspace" \
         -w /workspace \
         redis:alpine \
         sh -c "
