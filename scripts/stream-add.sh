@@ -5,16 +5,15 @@ set -e
 # Reads .env, parses Redis URI per lettuce spec, writes to Redis stream
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$DIR/../.env"
+ENV_FILE="/workspace/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: .env file not found at $ENV_FILE"
     exit 1
 fi
 
-# Clean Windows line endings and source env vars
 set -a
-source <(tr -d '\r' < "$ENV_FILE")
+source "$ENV_FILE"
 set +a
 
 if [ -z "$REDIS_URL" ]; then

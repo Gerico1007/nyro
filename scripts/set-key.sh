@@ -2,7 +2,7 @@
 
 # Source environment variables
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$DIR/../.env"
+ENV_FILE="/workspace/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: .env file not found at $ENV_FILE"
@@ -11,7 +11,7 @@ fi
 
 # Source env file
 set -a
-source <(cat "$ENV_FILE" | tr -d '\r')
+source "$ENV_FILE"
 set +a
 
 if [ -z "$REDIS_URL" ]; then

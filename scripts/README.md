@@ -1,10 +1,10 @@
 # Redis Scripts
 
-This directory contains bash scripts for interacting with Redis via REST API.
+This directory contains bash scripts for interacting with Redis via Dockerized redis-cli.
 
 ## Configuration
 
-All scripts use the `KV_REST_API_URL` variable from the `.env` file for the Redis REST API endpoint. 
+All scripts use the `REDIS_URL` variable from the `.env` file for the Redis endpoint. 
 
 ### Setup
 
@@ -15,8 +15,7 @@ All scripts use the `KV_REST_API_URL` variable from the `.env` file for the Redi
 
 2. **Edit the .env file** and set your Redis configuration:
    ```
-   KV_REST_API_URL="https://your-instance.upstash.io"
-   KV_REST_API_TOKEN="your-rest-token"
+   REDIS_URL="rediss://default:your-token@your-instance.upstash.io:6379"
    ```
 
 3. **Run the setup script** to configure your environment:
@@ -27,8 +26,20 @@ All scripts use the `KV_REST_API_URL` variable from the `.env` file for the Redi
 ### Required Variables
 
 The following variables must be defined in your `.env` file:
-- `KV_REST_API_URL` - Your Redis REST API endpoint (e.g., "https://your-instance.upstash.io")
-- `KV_REST_API_TOKEN` - Your Redis REST API token
+- `REDIS_URL` - Your Redis endpoint (e.g., "rediss://default:your-token@your-instance.upstash.io:6379")
+
+## Usage Examples
+
+- **Interactive menu:**
+  ```bash
+  ./redis-cli-wrapper.sh --script scripts/menu.sh
+  ```
+- **Direct script usage:**
+  ```bash
+  ./redis-cli-wrapper.sh --script scripts/set-key.sh mykey myvalue
+  ./redis-cli-wrapper.sh --script scripts/get-key.sh mykey
+  ./redis-cli-wrapper.sh --script scripts/del-key.sh mykey
+  ```
 
 ## Available Scripts
 
@@ -43,18 +54,17 @@ The following variables must be defined in your `.env` file:
 - `menu.sh` - Interactive menu
 - `setup-env.sh` - Setup environment variables
 
-## Usage Examples
-
-```bash
-# Make sure your .env file is configured first
-./set-key.sh mykey myvalue
-./get-key.sh mykey
-./del-key.sh mykey
-```
-
 ## Troubleshooting
 
 If you get errors about undefined variables, make sure:
-1. Your `.env` file exists in the parent directory
-2. `KV_REST_API_URL` and `KV_REST_API_TOKEN` are properly defined in the `.env` file
-3. The `.env` file is being sourced correctly (all scripts should do this automatically) 
+1. Your `.env` file exists in the project root
+2. `REDIS_URL` is properly defined in the `.env` file
+3. The `.env` file is being sourced correctly (all scripts do this automatically)
+
+## Dockerized Usage
+
+All scripts are intended to be run via the Dockerized wrapper:
+```bash
+./redis-cli-wrapper.sh --script scripts/menu.sh
+```
+This ensures you do not need to install redis-cli locally. 

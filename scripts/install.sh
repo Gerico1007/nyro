@@ -42,5 +42,6 @@ chmod +x ./*.sh
 
 echo "Installation completed!"
 echo "Next steps:"
-echo "1. Edit the .env file with your Upstash Redis credentials"
-echo "2. Try running ./scripts/menu.sh to get started"
+echo "1. Edit the .env file with your Upstash Redis credentials (in the project root)"
+echo "2. To use the interactive menu, run: ./redis-cli-wrapper.sh --script scripts/menu.sh"
+echo "3. All Redis operations should be performed via redis-cli-wrapper.sh for Docker compatibility."

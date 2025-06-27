@@ -6,9 +6,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Setting up Redis environment..."
 
 # Check if .env exists
-if [ ! -f "${SCRIPT_DIR}/../.env" ]; then
+if [ ! -f "$SCRIPT_DIR/../.env" ]; then
     echo "Creating new .env file..."
-    cp "${SCRIPT_DIR}/../.env.example" "${SCRIPT_DIR}/../.env"
+    cp "$SCRIPT_DIR/../.env.example" "$SCRIPT_DIR/../.env"
 fi
 
 # Interactive setup
@@ -51,16 +51,16 @@ if [ ! -z "$redis_host" ]; then
     REDIS_URL="${protocol}://${redis_user}:${redis_pass}@${redis_host}:${redis_port}/${redis_db}"
     
     # Update the .env file using sed
-    sed -i "s#^REDIS_URL=.*#REDIS_URL=\"${REDIS_URL}\"#" "${SCRIPT_DIR}/../.env"
-    sed -i "s#^UPSTASH_REDIS_HOST=.*#UPSTASH_REDIS_HOST=\"${redis_host}\"#" "${SCRIPT_DIR}/../.env"
-    sed -i "s#^UPSTASH_REDIS_PORT=.*#UPSTASH_REDIS_PORT=${redis_port}#" "${SCRIPT_DIR}/../.env"
-    sed -i "s#^UPSTASH_REDIS_PASSWORD=.*#UPSTASH_REDIS_PASSWORD=\"${redis_pass}\"#" "${SCRIPT_DIR}/../.env"
+    sed -i "s#^REDIS_URL=.*#REDIS_URL=\"${REDIS_URL}\"#" "$SCRIPT_DIR/../.env"
+    sed -i "s#^UPSTASH_REDIS_HOST=.*#UPSTASH_REDIS_HOST=\"${redis_host}\"#" "$SCRIPT_DIR/../.env"
+    sed -i "s#^UPSTASH_REDIS_PORT=.*#UPSTASH_REDIS_PORT=${redis_port}#" "$SCRIPT_DIR/../.env"
+    sed -i "s#^UPSTASH_REDIS_PASSWORD=.*#UPSTASH_REDIS_PASSWORD=\"${redis_pass}\"#" "$SCRIPT_DIR/../.env"
     
     if [ ! -z "$rest_url" ]; then
-        sed -i "s#^UPSTASH_REDIS_REST_URL=.*#UPSTASH_REDIS_REST_URL=\"${rest_url}\"#" "${SCRIPT_DIR}/../.env"
+        sed -i "s#^UPSTASH_REDIS_REST_URL=.*#UPSTASH_REDIS_REST_URL=\"${rest_url}\"#" "$SCRIPT_DIR/../.env"
     fi
     if [ ! -z "$rest_token" ]; then
-        sed -i "s#^UPSTASH_REDIS_REST_TOKEN=.*#UPSTASH_REDIS_REST_TOKEN=\"${rest_token}\"#" "${SCRIPT_DIR}/../.env"
+        sed -i "s#^UPSTASH_REDIS_REST_TOKEN=.*#UPSTASH_REDIS_REST_TOKEN=\"${rest_token}\"#" "$SCRIPT_DIR/../.env"
     fi
     
     echo "Environment variables updated successfully!"
@@ -70,6 +70,6 @@ fi
 
 echo ""
 echo "Next steps:"
-echo "1. Review your .env file to ensure all values are correct"
-echo "2. Make sure .env is added to .gitignore"
+echo "1. Review your .env file to ensure all values are correct (in the project root)"
+echo "2. All scripts should be run via ./redis-cli-wrapper.sh for Docker compatibility."
 echo "3. Never commit your .env file to version control"

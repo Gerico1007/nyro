@@ -3,16 +3,15 @@ set -e
 
 # Source environment variables using proper shell syntax
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ENV_FILE="$DIR/../.env"
+ENV_FILE="/workspace/.env"
 
 if [ ! -f "$ENV_FILE" ]; then
     echo "Error: .env file not found at $ENV_FILE"
     exit 1
 fi
 
-# Source env file but clean up any Windows line endings
 set -a
-source <(cat "$ENV_FILE" | tr -d '\r')
+source "$ENV_FILE"
 set +a
 
 # Check Redis URL
