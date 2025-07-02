@@ -43,7 +43,7 @@ redis_rest_call() {
     fi
 }
 
-# Function to write diary entry (Upstash expects flat array)
+# Function to write diary entry (Upstash REST API format)
 write_diary() {
     local diary_name="${1:-$DEFAULT_DIARY}"
     echo "📝 Writing in diary: $diary_name"
@@ -53,23 +53,19 @@ write_diary() {
     read -p "Enter location (optional, press enter to skip): " location
     read -p "Enter any extra details (optional, press enter to skip): " details
 
-    # Build the stream entry as a flat array using jq for valid JSON
-    local fields=()
-    fields+=("event" "$event")
-    [ -n "$mood" ] && fields+=("mood" "$mood")
-    [ -n "$location" ] && fields+=("location" "$location")
-    [ -n "$details" ] && fields+=("details" "$details")
+    # Build command array for XADD: ["XADD", "stream", "*", "field1", "value1", ...]
+    local fields_array='["XADD", "'$diary_name'", "*", "event", "'"$event"'"'
+    [ -n "$mood" ] && fields_array+=', "mood", "'"$mood"'"'
+    [ -n "$location" ] && fields_array+=', "location", "'"$location"'"'
+    [ -n "$details" ] && fields_array+=', "details", "'"$details"'"'
+    fields_array+=']'
 
-    # Use jq to create a valid JSON array
-    local stream_data
-    stream_data=$(printf '%s\n' "${fields[@]}" | jq -R . | jq -s .)
-
-    local result=$(redis_rest_call "POST" "/xadd/$diary_name" "$stream_data")
+    local result=$(redis_rest_call "POST" "" "$fields_array")
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error adding entry: $result"
     else
         echo "✅ Entry added successfully!"
-        echo "📅 Stream ID: $result"
+        echo "📅 Stream ID: $(echo "$result" | jq -r '.result')"
     fi
 }
 
@@ -79,14 +75,13 @@ read_diary() {
     local count="${2:-10}"
     echo "📖 Reading diary: $diary_name (last $count entries)"
     echo ""
-    local result=$(redis_rest_call "GET" "/xrange/$diary_name/-/+?count=$count")
+    # Use XRANGE command in full format
+    local cmd_array='["XRANGE", "'$diary_name'", "-", "+", "COUNT", "'$count'"]'
+    local result=$(redis_rest_call "POST" "" "$cmd_array")
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error reading diary: $result"
     else
-        echo "$result" | jq -r '
-          .[] | "📅 \(.[0])",
-          (.[1] | @tsv | gsub("\t"; "\n  ")) , ""
-        '
+        echo "$result" | jq -r '.result[] | "📅 \(.[0])\n\(.[1] | to_entries | map("  \(.key): \(.value)") | join("\n"))\n"' 2>/dev/null || echo "$result"
     fi
 }
 
@@ -95,13 +90,14 @@ show_by_location() {
     local diary_name="${1:-$DEFAULT_DIARY}"
     echo "🗺️  Showing entries by location"
     echo ""
-    local result=$(redis_rest_call "GET" "/xrange/$diary_name/-/+?count=100")
+    local cmd_array='["XRANGE", "'$diary_name'", "-", "+", "COUNT", "100"]'
+    local result=$(redis_rest_call "POST" "" "$cmd_array")
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error reading diary: $result"
         return
     fi
     # Extract unique locations from array format
-    local locations=$(echo "$result" | jq -r '.[] | .[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location") | $arr[2*.+1]] | .[]' | sort | uniq)
+    local locations=$(echo "$result" | jq -r '.result[] | .[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location") | $arr[2*.+1]] | .[]' | sort | uniq)
     if [ -z "$locations" ]; then
         echo "📭 No entries with location found"
         return
@@ -124,9 +120,8 @@ show_by_location() {
         echo "📍 Entries from: $selected_location"
         echo ""
         echo "$result" | jq -r --arg loc "$selected_location" '
-          .[] | select(.[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location" and $arr[2*.+1] == $loc)]) |
-          "📅 \(.[0])",
-          (.[1] | @tsv | gsub("\t"; "\n  ")) , ""
+          .result[] | select(.[1] as $arr | [range(0; length/2) | select($arr[2*.] == "location" and $arr[2*.+1] == $loc)]) |
+          "📅 \(.[0])\n\(.[1] | to_entries | map("  \(.key): \(.value)") | join("\n"))\n"
         '
     else
         echo "❌ Invalid selection"
@@ -181,13 +176,12 @@ delete_key() {
 list_keys() {
     read -p "Enter pattern (default *): " pattern
     pattern="${pattern:-*}"
-    local result=$(redis_rest_call "GET" "/scan/0/match/$pattern/count/100")
+    local cmd_array='["SCAN", "0", "MATCH", "'$pattern'", "COUNT", "100"]'
+    local result=$(redis_rest_call "POST" "" "$cmd_array")
     if [[ "$result" == *"error"* ]]; then
         echo "❌ Error listing keys: $result"
     else
-        if ! echo "$result" | jq -r '.[1][]?' 2>/dev/null; then
-            echo "$result"
-        fi
+        echo "$result" | jq -r '.result[1][]?' 2>/dev/null || echo "$result"
     fi
 }
 
@@ -205,7 +199,8 @@ while true; do
     echo "7) List all keys"
     echo "q) Quit"
     echo ""
-    read -p "Choose an option: " choice
+    echo -n "Choose an option: "
+    read choice
     case $choice in
         1)
             write_diary

@@ -65,7 +65,7 @@ case "$1" in
     ping)
         echo "🏓 Testing connection..."
         result=$(redis_rest_call "GET" "/ping")
-        if [[ "$result" == *"pong"* ]]; then
+        if [[ "$result" == *"PONG"* ]] || [[ "$result" == *"pong"* ]]; then
             echo "✅ Connection successful!"
         else
             echo "❌ Connection failed: $result"
@@ -99,7 +99,17 @@ case "$1" in
         if [[ "$result" == *"error"* ]]; then
             echo "❌ Error: $result"
         else
-            echo "📦 Value: $result"
+            # Clean JSON response parsing
+            value=$(echo "$result" | jq -r '.result' 2>/dev/null)
+            if [[ "$value" =~ ^\{.*\}$ ]]; then
+                # If result is stringified JSON, parse it
+                value=$(echo "$value" | jq -r '.value' 2>/dev/null)
+            fi
+            # Fallback to raw result if parsing fails
+            if [ -z "$value" ] || [ "$value" = "null" ]; then
+                value="$result"
+            fi
+            echo "📦 Value: $value"
         fi
         ;;
     
@@ -121,27 +131,39 @@ case "$1" in
     keys)
         pattern="${2:-*}"
         echo "🔑 Listing keys matching: $pattern"
-        result=$(redis_rest_call "GET" "/scan/0/match/$pattern/count=100")
+        # Use SCAN command in full format
+        cmd_array='["SCAN", "0", "MATCH", "'$pattern'", "COUNT", "100"]'
+        result=$(redis_rest_call "POST" "" "$cmd_array")
         if [[ "$result" == *"error"* ]]; then
             echo "❌ Error: $result"
         else
-            echo "$result" | jq -r '.[1][]?' 2>/dev/null || echo "$result"
+            echo "$result" | jq -r '.result[1][]?' 2>/dev/null || echo "$result"
         fi
         ;;
     
     xadd)
         if [ $# -lt 3 ]; then
-            echo "❌ Usage: $0 xadd <stream> <json_data>"
+            echo "❌ Usage: $0 xadd <stream> <field1> <value1> [field2] [value2] ..."
+            echo "Example: $0 xadd garden.diary event 'saw butterfly' location 'garden'"
             exit 1
         fi
         stream="$2"
-        data="$3"
+        shift 2
+        
+        # Build command array: ["XADD", "stream", "*", "field1", "value1", ...]
+        cmd_array='["XADD", "'$stream'", "*"'
+        while [ $# -gt 0 ]; do
+            cmd_array="${cmd_array}, \"$1\""
+            shift
+        done
+        cmd_array="${cmd_array}]"
+        
         echo "📝 Adding to stream: $stream"
-        result=$(redis_rest_call "POST" "/xadd/$stream" "$data")
+        result=$(redis_rest_call "POST" "" "$cmd_array")
         if [[ "$result" == *"error"* ]]; then
             echo "❌ Error: $result"
         else
-            echo "✅ Added to stream! ID: $result"
+            echo "✅ Added to stream! ID: $(echo "$result" | jq -r '.result')"
         fi
         ;;
     
@@ -153,11 +175,14 @@ case "$1" in
         stream="$2"
         count="${3:-10}"
         echo "📖 Reading from stream: $stream (last $count entries)"
-        result=$(redis_rest_call "GET" "/xrange/$stream/-/+?count=$count")
+        
+        # Use full command format for XRANGE
+        cmd_array='["XRANGE", "'$stream'", "-", "+", "COUNT", "'$count'"]'
+        result=$(redis_rest_call "POST" "" "$cmd_array")
         if [[ "$result" == *"error"* ]]; then
             echo "❌ Error: $result"
         else
-            echo "$result" | jq -r '.[] | "📅 \(.[0])\n\(.[1] | to_entries | map("  \(.key): \(.value)") | join("\n"))\n"' 2>/dev/null || echo "$result"
+            echo "$result" | jq -r '.result[] | "📅 \(.[0])\n\(.[1] | to_entries | map("  \(.key): \(.value)") | join("\n"))\n"' 2>/dev/null || echo "$result"
         fi
         ;;
     
@@ -170,7 +195,7 @@ case "$1" in
         echo ""
         echo "Testing connection..."
         result=$(redis_rest_call "GET" "/ping")
-        if [[ "$result" == *"pong"* ]]; then
+        if [[ "$result" == *"PONG"* ]] || [[ "$result" == *"pong"* ]]; then
             echo "✅ Connection: OK"
         else
             echo "❌ Connection: Failed"
