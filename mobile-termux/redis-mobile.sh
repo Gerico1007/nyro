@@ -1,7 +1,12 @@
 #!/bin/bash
 
-# Nyro Redis Mobile - Main Menu Script
-# Mobile-friendly version for Termux with location features
+# Nyro Redis Mobile - Enhanced Main Menu Script
+# Multi-database support with massive data handling
+
+# Initialize global variables
+CURRENT_PROFILE="default"
+CURRENT_URL=""
+CURRENT_TOKEN=""
 
 # Source environment variables
 if [ -f ".env" ]; then
@@ -12,10 +17,65 @@ else
     exit 1
 fi
 
-# Check required environment variables
-if [ -z "$KV_REST_API_URL" ] || [ -z "$KV_REST_API_TOKEN" ]; then
-    echo "❌ Error: KV_REST_API_URL and KV_REST_API_TOKEN not set in .env file"
-    echo "Please edit .env file with your Upstash credentials"
+# Function to load profile credentials
+load_profile() {
+    local profile="$1"
+    
+    if [ "$profile" = "default" ] || [ -z "$profile" ]; then
+        CURRENT_URL="$KV_REST_API_URL"
+        CURRENT_TOKEN="$KV_REST_API_TOKEN"
+        CURRENT_PROFILE="default"
+    else
+        # Load profile-specific credentials
+        local url_var="PROFILE_${profile^^}_URL"
+        local token_var="PROFILE_${profile^^}_TOKEN"
+        
+        CURRENT_URL="${!url_var}"
+        CURRENT_TOKEN="${!token_var}"
+        CURRENT_PROFILE="$profile"
+    fi
+    
+    # Validate credentials
+    if [ -z "$CURRENT_URL" ] || [ -z "$CURRENT_TOKEN" ]; then
+        echo "❌ Error: Profile '$profile' not configured or missing credentials"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to create temp directory
+ensure_temp_dir() {
+    local temp_dir="${TEMP_DIR:-/tmp/nyro-temp}"
+    if [ ! -d "$temp_dir" ]; then
+        mkdir -p "$temp_dir"
+    fi
+    echo "$temp_dir"
+}
+
+# Function to check if input is too large for direct processing
+check_input_size() {
+    local input="$1"
+    local max_size="${MAX_DIRECT_INPUT_SIZE:-1024}"
+    local input_size=$(echo -n "$input" | wc -c)
+    local max_bytes=$((max_size * 1024))
+    
+    if [ "$input_size" -gt "$max_bytes" ]; then
+        return 1
+    fi
+    return 0
+}
+
+# Initialize with active profile or default
+if [ -n "$ACTIVE_PROFILE" ]; then
+    load_profile "$ACTIVE_PROFILE"
+else
+    load_profile "default"
+fi
+
+# Final validation
+if [ -z "$CURRENT_URL" ] || [ -z "$CURRENT_TOKEN" ]; then
+    echo "❌ Error: No valid profile configured"
     exit 1
 fi
 
@@ -33,13 +93,13 @@ redis_rest_call() {
     local data="$3"
     
     if [ -n "$data" ]; then
-        curl -s -X "$method" "${KV_REST_API_URL}${endpoint}" \
-            -H "Authorization: Bearer $KV_REST_API_TOKEN" \
+        curl -s -X "$method" "${CURRENT_URL}${endpoint}" \
+            -H "Authorization: Bearer $CURRENT_TOKEN" \
             -H "Content-Type: application/json" \
             -d "$data"
     else
-        curl -s -X "$method" "${KV_REST_API_URL}${endpoint}" \
-            -H "Authorization: Bearer $KV_REST_API_TOKEN"
+        curl -s -X "$method" "${CURRENT_URL}${endpoint}" \
+            -H "Authorization: Bearer $CURRENT_TOKEN"
     fi
 }
 
@@ -131,13 +191,49 @@ show_by_location() {
 # Function to set a key
 set_key() {
     read -p "Enter key: " key
-    read -p "Enter value: " value
-    local result=$(redis_rest_call "POST" "/set/$key" "{\"value\":\"$value\"}")
-    if [[ "$result" == *"error"* ]]; then
-        echo "❌ Error setting key: $result"
-    else
-        echo "✅ Key set successfully!"
-    fi
+    echo "1) Enter value directly"
+    echo "2) Enter massive data (multi-line)"
+    echo "3) Load from file"
+    echo -n "Choose input method: "
+    read method
+    
+    case $method in
+        1)
+            read -p "Enter value: " value
+            local result=$(redis_rest_call "POST" "/set/$key" "{\"value\":\"$value\"}")
+            if [[ "$result" == *"error"* ]]; then
+                echo "❌ Error setting key: $result"
+            else
+                echo "✅ Key set successfully!"
+            fi
+            ;;
+        2)
+            echo "📥 Enter massive data (press Ctrl+D when finished):"
+            massive_data=$(cat)
+            if check_input_size "$massive_data"; then
+                local result=$(redis_rest_call "POST" "/set/$key" "{\"value\":\"$massive_data\"}")
+                if [[ "$result" == *"error"* ]]; then
+                    echo "❌ Error setting key: $result"
+                else
+                    echo "✅ Key set successfully!"
+                fi
+            else
+                echo "📦 Data too large for direct input, processing in chunks..."
+                ./redis-rest.sh set-massive "$key" <<< "$massive_data"
+            fi
+            ;;
+        3)
+            read -p "Enter file path: " file_path
+            if [ -f "$file_path" ]; then
+                ./redis-rest.sh set-file "$key" "$file_path"
+            else
+                echo "❌ File not found: $file_path"
+            fi
+            ;;
+        *)
+            echo "❌ Invalid method selected"
+            ;;
+    esac
 }
 
 # Function to get a key (parse value)
@@ -185,18 +281,97 @@ list_keys() {
     fi
 }
 
+# Function to switch profile
+switch_profile() {
+    echo "🔧 Profile Management"
+    echo "=================="
+    echo "Current Profile: $CURRENT_PROFILE"
+    echo "Current URL: $CURRENT_URL"
+    echo ""
+    echo "Available profiles:"
+    echo "• default"
+    
+    # Check for additional profiles
+    for profile in dev prod test; do
+        url_var="PROFILE_${profile^^}_URL"
+        if [ -n "${!url_var}" ]; then
+            echo "• $profile"
+        fi
+    done
+    
+    echo ""
+    read -p "Enter profile name to switch to: " profile_name
+    
+    if load_profile "$profile_name"; then
+        echo "✅ Switched to profile: $profile_name"
+        echo "URL: $CURRENT_URL"
+    else
+        echo "❌ Failed to load profile: $profile_name"
+    fi
+}
+
+# Function to add massive data to stream
+write_massive_diary() {
+    local diary_name="${1:-$DEFAULT_DIARY}"
+    echo "📝 Writing massive data to diary: $diary_name"
+    echo "Choose input method:"
+    echo "1) Enter data directly (multi-line)"
+    echo "2) Load from file"
+    echo -n "Choose method: "
+    read method
+    
+    case $method in
+        1)
+            echo "📥 Enter massive data (press Ctrl+D when finished):"
+            massive_data=$(cat)
+            if check_input_size "$massive_data"; then
+                local result=$(redis_rest_call "POST" "/" "{\"command\":[\"XADD\", \"$diary_name\", \"*\", \"data\", \"$massive_data\"]}")
+                if [[ "$result" == *"error"* ]]; then
+                    echo "❌ Error adding entry: $result"
+                else
+                    echo "✅ Entry added successfully!"
+                    echo "📅 Stream ID: $(echo "$result" | jq -r '.result')"
+                fi
+            else
+                echo "📦 Data too large for direct input, processing in chunks..."
+                ./redis-rest.sh xadd-massive "$diary_name" <<< "$massive_data"
+            fi
+            ;;
+        2)
+            read -p "Enter file path: " file_path
+            if [ -f "$file_path" ]; then
+                ./redis-rest.sh xadd-file "$diary_name" "$file_path"
+            else
+                echo "❌ File not found: $file_path"
+            fi
+            ;;
+        *)
+            echo "❌ Invalid method selected"
+            ;;
+    esac
+}
+
 # Main menu
 while true; do
     echo ""
-    echo "🌱 Nyro Redis Mobile Menu"
-    echo "------------------------"
+    echo "🌱 Nyro Redis Mobile Menu (Profile: $CURRENT_PROFILE)"
+    echo "================================================"
+    echo "Diary Operations:"
     echo "1) Write in garden diary (with location!)"
     echo "2) Read garden diary"
     echo "3) Show entries by location"
-    echo "4) Set a key"
-    echo "5) Get a key"
-    echo "6) Delete a key"
-    echo "7) List all keys"
+    echo "4) Write massive data to diary"
+    echo ""
+    echo "Key Operations:"
+    echo "5) Set a key"
+    echo "6) Get a key"
+    echo "7) Delete a key"
+    echo "8) List all keys"
+    echo ""
+    echo "Profile Management:"
+    echo "9) Switch database profile"
+    echo "0) Show profile info"
+    echo ""
     echo "q) Quit"
     echo ""
     echo -n "Choose an option: "
@@ -212,16 +387,33 @@ while true; do
             show_by_location
             ;;
         4)
-            set_key
+            write_massive_diary
             ;;
         5)
-            get_key
+            set_key
             ;;
         6)
-            delete_key
+            get_key
             ;;
         7)
+            delete_key
+            ;;
+        8)
             list_keys
+            ;;
+        9)
+            switch_profile
+            ;;
+        0)
+            echo "🔧 Current Profile Information:"
+            echo "============================="
+            echo "Profile Name: $CURRENT_PROFILE"
+            echo "API URL: $CURRENT_URL"
+            echo "Token: ${CURRENT_TOKEN:0:8}..."
+            echo "Temp Dir: ${TEMP_DIR:-/tmp/nyro-temp}"
+            echo "Max Direct Input: ${MAX_DIRECT_INPUT_SIZE:-1024}KB"
+            echo "Max File Size: ${MAX_FILE_SIZE:-100}MB"
+            echo "Chunk Size: ${CHUNK_SIZE:-512}KB"
             ;;
         q|Q)
             echo "👋 Goodbye! Happy gardening! 🌱"
