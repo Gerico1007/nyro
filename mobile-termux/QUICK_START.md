@@ -96,7 +96,7 @@ PROFILE_PROFILENAME_TOKEN="..."
 **Note**: Deleting from .env only removes access - your actual database data remains safe and untouched.
 
 ### Pre-configured Profiles
-- **default**: Main development database
+- **default**: Points to tashdum (productivity database)
 - **musebase**: Creative and artistic data storage
 - **tashdum**: Task and productivity data storage
 
