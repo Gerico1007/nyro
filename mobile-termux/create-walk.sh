@@ -108,7 +108,7 @@ while IFS= read -r file; do
         esac
         
         # Upload file content
-        if cat "$file" | /data/data/com.termux/files/home/src/nyro/mobile-termux/redis-rest.sh set-massive "$key" >/dev/null 2>&1; then
+        if cat "$file" | ./redis-rest.sh set-massive "$key" >/dev/null 2>&1; then
             echo "   ✅ Uploaded successfully"
             total_size=$((total_size + file_size))
             
@@ -144,11 +144,11 @@ INDEX="{
 
 echo ""
 echo "📋 Creating session index..."
-echo "$INDEX" | /data/data/com.termux/files/home/src/nyro/mobile-termux/redis-rest.sh set-massive "walking:index:$DATE_KEY"
+echo "$INDEX" | ./redis-rest.sh set-massive "walking:index:$DATE_KEY"
 
 # Create quick summary
 SUMMARY="Walking session $DATE_KEY: $file_count files from $target_dir ($total_size total lines). Ready for GPT conversation."
-/data/data/com.termux/files/home/src/nyro/mobile-termux/redis-rest.sh set "walking:summary:$DATE_KEY" "$SUMMARY"
+./redis-rest.sh set "walking:summary:$DATE_KEY" "$SUMMARY"
 
 echo ""
 echo "🎉 Walking payload created successfully!"
