@@ -49,6 +49,57 @@ KV_REST_API_TOKEN=your_actual_token_here
 - **Use location names** like "home", "park", "coffee shop"
 - **Save battery** by closing Termux when not using
 
+## 🗃️ Multiple Database Profiles
+
+### Add a New Profile
+1. **Edit .env file**:
+```bash
+nano .env
+```
+
+2. **Add profile lines** (replace PROFILENAME with your chosen name):
+```bash
+# New profile example
+PROFILE_PROFILENAME_URL="https://your-database.upstash.io"
+PROFILE_PROFILENAME_TOKEN="your_token_here"
+```
+
+3. **Profile appears automatically** in:
+   - CLI: `./redis-rest.sh profile-list`
+   - Interactive menu: Option 9
+
+### Switch Between Profiles
+```bash
+# CLI switching
+./redis-rest.sh profile profilename
+
+# Or use interactive menu
+./redis-mobile.sh
+# Choose option 9
+```
+
+### Delete a Profile
+1. **Edit .env file**:
+```bash
+nano .env
+```
+
+2. **Remove both lines** for the profile:
+```bash
+# Delete these lines
+PROFILE_PROFILENAME_URL="..."
+PROFILE_PROFILENAME_TOKEN="..."
+```
+
+3. **Profile disappears automatically** from all menus
+
+**Note**: Deleting from .env only removes access - your actual database data remains safe and untouched.
+
+### Pre-configured Profiles
+- **default**: Main development database
+- **musebase**: Creative and artistic data storage
+- **tashdum**: Task and productivity data storage
+
 ## 🔧 Troubleshooting
 
 ### "curl: command not found"
@@ -66,6 +117,11 @@ chmod +x *.sh
 - Verify your Upstash credentials
 - Make sure your Upstash instance is active
 
+### Profile not appearing
+- Check .env file syntax (no spaces around =)
+- Ensure both URL and TOKEN lines are present
+- Profile names are case-sensitive (use lowercase)
+
 ## 🌱 Happy Gardening!
 
-Your mobile garden diary is ready! 📱✨ 
+Your mobile garden diary with multiple databases is ready! 📱✨ 
