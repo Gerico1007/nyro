@@ -132,6 +132,40 @@ Make sure your `.env` file exists and contains your Upstash credentials.
 - REST API calls use HTTPS encryption
 - No sensitive data is logged or displayed
 
+## 🚶‍♂️ Walking Script - GPT Payload Creator
+
+### Create Walking Payloads for GPT Conversations
+Transform any directory into a comprehensive payload for GPT conversations during walks!
+
+```bash
+# Run the walking script
+./create-walk.sh
+
+# Enter directory (or press Enter for current)
+📁 Enter directory path: /path/to/project
+
+# Confirm upload
+🤔 Continue with upload? (y/N): y
+
+# Get your keys for GPT
+🔑 Main index: walking:index:250703
+📝 Summary: walking:summary:250703
+```
+
+### What the Walking Script Does
+- 🔍 **Scans directory** - Finds all project files automatically
+- 📤 **Uploads to Redis** - Stores in your `tashdum` database
+- 🗂️ **Creates index** - Organized structure for GPT access
+- 🛡️ **Smart filtering** - Excludes `.env`, `.git`, logs automatically
+- 📊 **Progress tracking** - Shows upload status and file counts
+
+### GPT Integration
+Tell your GPT to fetch: `walking:index:250703` for complete project context during walks!
+
+### See Also
+- `WALKING_TUTORIAL.md` - Detailed examples and use cases
+- Option 9 in menu - Interactive key scanner for exploring uploaded data
+
 ## 📚 Advanced Usage
 
 ### Direct REST API calls
