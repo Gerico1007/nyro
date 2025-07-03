@@ -1,20 +1,46 @@
 #!/bin/bash
 
-# Nyro Redis Mobile - Termux Installation Script
-# This script sets up the mobile environment for Android Termux
+# 🧵 Nyro Redis Mobile - Four-Perspective Installation 
+# Assembly Mode Integration for Termux Environment
+# Multi-perspective validation: Nyro♠️ + Aureon🌿 + JamAI🎸 + Synth🧵
 
-echo "🌱 Nyro Redis Mobile - Termux Installation"
-echo "=========================================="
+echo "🧵 Nyro Redis Mobile - Four-Perspective Installation"
+echo "═══════════════════════════════════════════════════"
+echo "♠️ Navigator | 🌿 Anchor | 🎸 Creative | 🧵 Security"
+echo "       Assembly Mode Integration by Team Synth"
 echo ""
 
-# Colors for output
+# Enhanced color palette for perspectives
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+WHITE='\033[1;37m'
+NC='\033[0m'
 
-# Function to print colored output
+# Perspective-specific output functions
+print_nyro() {
+    echo -e "${CYAN}♠️ [NYRO-NAV]${NC} $1"
+}
+
+print_aureon() {
+    echo -e "${GREEN}🌿 [AUREON-ANCHOR]${NC} $1"
+}
+
+print_jamai() {
+    echo -e "${PURPLE}🎸 [JAMAI-CREATIVE]${NC} $1"
+}
+
+print_synth() {
+    echo -e "${WHITE}🧵 [SYNTH-SECURITY]${NC} $1"
+}
+
+print_assembly() {
+    echo -e "${WHITE}🌿⚡🎸🧵 [ASSEMBLY-MODE]${NC} $1"
+}
+
 print_status() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -31,36 +57,94 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if we're in Termux
+# Perspective validation tracker
+NYRO_VALIDATED=false
+AUREON_VALIDATED=false
+JAMAI_VALIDATED=false
+SYNTH_VALIDATED=false
+
+# ═══════════════════════════════════════════════════════
+# 🌿⚡🎸🧵 ASSEMBLY MODE: Four-Perspective Environment Validation
+# ═══════════════════════════════════════════════════════
+
+print_assembly "Initiating four-perspective environment validation..."
+echo ""
+
+# ♠️ NYRO PERSPECTIVE: System Architecture Navigation
+print_nyro "Phase 1: System Architecture & Integration Mapping"
+print_nyro "Analyzing Termux environment and system requirements..."
+
 if [ ! -d "/data/data/com.termux" ]; then
-    print_warning "This script is designed for Termux on Android"
-    print_warning "Some features may not work on other systems"
+    print_warning "Non-Termux environment detected"
+    print_nyro "Mapping alternative Android shell integration paths..."
+    print_warning "Some mobile-optimized features may not work on other systems"
     echo ""
+else
+    print_nyro "✓ Termux environment confirmed - mobile integration path optimal"
+    NYRO_VALIDATED=true
 fi
 
-print_status "Updating package repositories..."
-pkg update -y
+print_nyro "Architecture analysis complete - proceeding to foundation validation"
+echo ""
 
-print_status "Installing required packages..."
-pkg install -y curl jq git
+# 🌿 AUREON PERSPECTIVE: Foundation Stability & Core Dependencies  
+print_aureon "Phase 2: Foundation Stability & Dependency Anchor Points"
+print_aureon "Establishing stable foundation for Redis mobile operations..."
 
-# Check if packages were installed successfully
-if command -v curl &> /dev/null; then
-    print_success "curl installed successfully"
+print_aureon "Updating package repositories for stable base..."
+if pkg update -y; then
+    print_aureon "✓ Package repository synchronization successful"
 else
-    print_error "Failed to install curl"
+    print_error "❌ Package update failed - foundation compromised"
+    exit 1
+fi
+
+print_aureon "Installing core dependency trinity: curl, jq, git..."
+if pkg install -y curl jq git; then
+    print_aureon "✓ Core dependencies anchored successfully"
+    AUREON_VALIDATED=true
+else
+    print_error "❌ Dependency installation failed - anchor point unstable"
+    exit 1
+fi
+
+print_aureon "Validating core dependency installation integrity..."
+if command -v curl &> /dev/null; then
+    print_aureon "✓ curl: REST API communication anchor verified"
+else
+    print_error "❌ curl installation failed - API communication impossible"
     exit 1
 fi
 
 if command -v jq &> /dev/null; then
-    print_success "jq installed successfully"
+    print_aureon "✓ jq: JSON processing anchor verified"
 else
-    print_error "Failed to install jq"
+    print_error "❌ jq installation failed - data processing compromised"
     exit 1
 fi
 
-print_status "Making scripts executable..."
-chmod +x *.sh
+if command -v git &> /dev/null; then
+    print_aureon "✓ git: Version control anchor verified"
+else
+    print_error "❌ git installation failed - version tracking unavailable"
+    exit 1
+fi
+
+print_aureon "Foundation stability validation complete"
+echo ""
+
+# 🎸 JAMAI PERSPECTIVE: Creative UX & Elegant Environment Setup
+print_jamai "Phase 3: Creative Experience & Elegant Environment Composition"
+print_jamai "Crafting beautiful, intuitive mobile Redis experience..."
+
+print_jamai "Setting executable permissions with creative flair..."
+if chmod +x *.sh; then
+    print_jamai "✓ Scripts awakened - ready for creative execution"
+    JAMAI_VALIDATED=true
+else
+    print_error "❌ Permission setting failed - creative flow blocked"
+    exit 1
+fi
 
 print_status "Creating .env file from template..."
 if [ ! -f ".env" ]; then

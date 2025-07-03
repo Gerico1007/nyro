@@ -36,11 +36,12 @@ KV_REST_API_TOKEN=your_actual_token_here
 
 ## 🎯 First Steps
 
-1. **Test connection**: Choose option 4, then set a test key
+1. **Test connection**: Choose option 5, then set a test key
 2. **Write your first diary entry**: Choose option 1
 3. **Add location**: When prompted, enter where you are
 4. **Read your entries**: Choose option 2
 5. **Filter by location**: Choose option 3
+6. **Explore your data**: Choose option 9 to scan and select keys
 
 ## 📱 Mobile Tips
 
@@ -100,6 +101,48 @@ PROFILE_PROFILENAME_TOKEN="..."
 - **musebase**: Creative and artistic data storage
 - **tashdum**: Task and productivity data storage
 - **threeways**: Multi-purpose data storage
+
+## 🔍 Key Scanner & Selector (New!)
+
+### What is it?
+The Interactive Key Scanner & Selector (option 9) allows you to:
+- Search for keys using patterns (wildcards)
+- Select multiple keys at once
+- Perform batch operations on selected keys
+- Export data in organized formats
+
+### How to use:
+1. **Choose option 9** from the main menu
+2. **Enter a pattern** (e.g., `user*`, `art-*`, `task*`, or `*` for all)
+3. **Select keys** using numbers (space-separated) or commands
+4. **Choose operation**: get values, delete, export to file/clipboard
+
+### Pattern Examples:
+- `*` - Find all keys
+- `user*` - Find keys starting with "user"
+- `*project*` - Find keys containing "project"
+- `art-*` - Find keys starting with "art-"
+- `task*` - Find productivity-related keys
+
+### Selection Commands:
+- **Numbers**: `1 3 5` - Select specific keys
+- **all** - Select all found keys
+- **none** - Clear all selections
+- **done** - Confirm selection and continue
+- **quit** - Cancel and return to menu
+
+### Batch Operations:
+1. **Get Values** - Display all selected key values
+2. **Delete Keys** - Remove selected keys (with confirmation)
+3. **Export to File** - Save to `~/nyro-exports/` with timestamp
+4. **Export to Clipboard** - Copy formatted data (if available)
+
+### Export Format:
+Exports are saved as markdown files with:
+- Timestamp and profile information
+- Organized key-value sections
+- JSON formatting when applicable
+- Clear separation between entries
 
 ## 🔧 Troubleshooting
 

@@ -351,6 +351,430 @@ write_massive_diary() {
     esac
 }
 
+# Function to scan keys by pattern
+scan_keys_by_pattern() {
+    local pattern="$1"
+    local cursor="0"
+    local all_keys=()
+    
+    echo "🔍 Scanning for keys matching: $pattern"
+    
+    # Use Redis SCAN command to find keys (using existing endpoint format)
+    while true; do
+        local cmd_array="[\"SCAN\", \"$cursor\", \"MATCH\", \"$pattern\", \"COUNT\", \"100\"]"
+        local result=$(redis_rest_call "POST" "" "$cmd_array")
+        
+        if [[ "$result" == *"error"* ]]; then
+            echo "❌ Error scanning keys: $result"
+            return 1
+        fi
+        
+        # Parse cursor and keys from result
+        cursor=$(echo "$result" | jq -r '.result[0]')
+        local keys_batch=$(echo "$result" | jq -r '.result[1][]?' 2>/dev/null)
+        
+        if [ -n "$keys_batch" ]; then
+            while IFS= read -r key; do
+                if [ -n "$key" ]; then
+                    all_keys+=("$key")
+                fi
+            done <<< "$keys_batch"
+        fi
+        
+        # Break if cursor is 0 (scan complete)
+        if [ "$cursor" = "0" ]; then
+            break
+        fi
+    done
+    
+    # Return all found keys
+    printf '%s\n' "${all_keys[@]}"
+}
+
+# Function for interactive key selection
+select_keys_interactive() {
+    local keys=("$@")
+    local selected_keys=()
+    local selections=()
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "❌ No keys to select from."
+        return 1
+    fi
+    
+    echo ""
+    echo "📋 Found ${#keys[@]} keys. Select keys for batch operations:"
+    echo "═══════════════════════════════════════════════════"
+    
+    # Initialize selections array
+    for i in "${!keys[@]}"; do
+        selections[i]=false
+    done
+    
+    while true; do
+        echo ""
+        # Display keys with selection status
+        for i in "${!keys[@]}"; do
+            local marker="○"
+            if [ "${selections[i]}" = "true" ]; then
+                marker="●"
+            fi
+            printf "%2d) %s %s\n" $((i+1)) "$marker" "${keys[i]}"
+        done
+        
+        echo ""
+        echo "Commands:"
+        echo "• Enter numbers (space-separated) to toggle: 1 3 5"
+        echo "• 'all' to select all, 'none' to clear selection"
+        echo "• 'done' to confirm selection, 'quit' to cancel"
+        echo ""
+        echo -n "Selection: "
+        read input
+        
+        case "$input" in
+            "done")
+                # Collect selected keys
+                for i in "${!keys[@]}"; do
+                    if [ "${selections[i]}" = "true" ]; then
+                        selected_keys+=("${keys[i]}")
+                    fi
+                done
+                
+                if [ ${#selected_keys[@]} -eq 0 ]; then
+                    echo "⚠️ No keys selected."
+                    return 1
+                fi
+                
+                echo "✅ Selected ${#selected_keys[@]} keys."
+                printf '%s\n' "${selected_keys[@]}"
+                return 0
+                ;;
+            "quit")
+                echo "❌ Selection cancelled."
+                return 1
+                ;;
+            "all")
+                for i in "${!keys[@]}"; do
+                    selections[i]=true
+                done
+                echo "✅ All keys selected."
+                ;;
+            "none")
+                for i in "${!keys[@]}"; do
+                    selections[i]=false
+                done
+                echo "✅ All selections cleared."
+                ;;
+            *)
+                # Parse number input
+                for num in $input; do
+                    if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le ${#keys[@]} ]; then
+                        local idx=$((num-1))
+                        if [ "${selections[idx]}" = "true" ]; then
+                            selections[idx]=false
+                            echo "○ Deselected: ${keys[idx]}"
+                        else
+                            selections[idx]=true
+                            echo "● Selected: ${keys[idx]}"
+                        fi
+                    fi
+                done
+                ;;
+        esac
+    done
+}
+
+# Function to perform batch operations on selected keys
+batch_key_operations() {
+    local keys=("$@")
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "❌ No keys provided for batch operations."
+        return 1
+    fi
+    
+    echo ""
+    echo "🛠️ Batch Operations for ${#keys[@]} keys"
+    echo "═══════════════════════════════════════"
+    echo "1) Get all values"
+    echo "2) Delete all keys (with confirmation)"
+    echo "3) Export to file"
+    echo "4) Export to clipboard"
+    echo "5) Back to main menu"
+    echo ""
+    echo -n "Choose operation: "
+    read operation
+    
+    case $operation in
+        1)
+            batch_get_values "${keys[@]}"
+            ;;
+        2)
+            batch_delete_keys "${keys[@]}"
+            ;;
+        3)
+            export_keys_to_file "${keys[@]}"
+            ;;
+        4)
+            export_keys_to_clipboard "${keys[@]}"
+            ;;
+        5)
+            return 0
+            ;;
+        *)
+            echo "❌ Invalid operation selected."
+            ;;
+    esac
+}
+
+# Function to get values for multiple keys
+batch_get_values() {
+    local keys=("$@")
+    
+    echo ""
+    echo "📦 Getting values for ${#keys[@]} keys..."
+    echo "═══════════════════════════════════════════"
+    
+    for key in "${keys[@]}"; do
+        echo ""
+        echo "🔑 Key: $key"
+        echo "───────────────────────────────────────────"
+        local result=$(redis_rest_call "POST" "/get/$key")
+        
+        if [[ "$result" == *"error"* ]]; then
+            echo "❌ Error: $result"
+        else
+            # Parse the value from the result
+            local value=$(echo "$result" | jq -r '.result // "null"')
+            if [ "$value" = "null" ]; then
+                echo "⚠️ Key not found or has no value"
+            else
+                # Try to parse as JSON first, fallback to plain text
+                if echo "$value" | jq . >/dev/null 2>&1; then
+                    echo "$value" | jq .
+                else
+                    echo "$value"
+                fi
+            fi
+        fi
+    done
+    
+    echo ""
+    echo "✅ Batch get operation completed."
+}
+
+# Function to delete multiple keys
+batch_delete_keys() {
+    local keys=("$@")
+    
+    echo ""
+    echo "⚠️ WARNING: This will permanently delete ${#keys[@]} keys!"
+    echo "Keys to delete:"
+    for key in "${keys[@]}"; do
+        echo "  • $key"
+    done
+    echo ""
+    echo -n "Type 'DELETE' to confirm: "
+    read confirmation
+    
+    if [ "$confirmation" != "DELETE" ]; then
+        echo "❌ Deletion cancelled."
+        return 1
+    fi
+    
+    echo ""
+    echo "🗑️ Deleting ${#keys[@]} keys..."
+    local deleted_count=0
+    
+    for key in "${keys[@]}"; do
+        local result=$(redis_rest_call "POST" "/" "{\"command\":[\"DEL\", \"$key\"]}")
+        
+        if [[ "$result" == *"error"* ]]; then
+            echo "❌ Failed to delete $key: $result"
+        else
+            echo "✅ Deleted: $key"
+            ((deleted_count++))
+        fi
+    done
+    
+    echo ""
+    echo "✅ Batch deletion completed: $deleted_count/${#keys[@]} keys deleted."
+}
+
+# Function to export keys to file
+export_keys_to_file() {
+    local keys=("$@")
+    
+    # Create export directory
+    local export_dir="$HOME/nyro-exports"
+    mkdir -p "$export_dir"
+    
+    # Generate filename with timestamp and profile
+    local timestamp=$(date +"%y%m%d_%H%M%S")
+    local filename="${timestamp}_${CURRENT_PROFILE}_keys.md"
+    local filepath="$export_dir/$filename"
+    
+    echo ""
+    echo "📄 Exporting ${#keys[@]} keys to file..."
+    
+    # Generate markdown content
+    {
+        echo "# Nyro Redis Key Export"
+        echo "Generated: $(date '+%Y-%m-%d %H:%M:%S')"
+        echo "Profile: $CURRENT_PROFILE"
+        echo "URL: $CURRENT_URL"
+        echo "Keys exported: ${#keys[@]}"
+        echo ""
+        
+        for key in "${keys[@]}"; do
+            echo "---"
+            echo "## $key"
+            echo ""
+            
+            local result=$(redis_rest_call "POST" "/get/$key")
+            
+            if [[ "$result" == *"error"* ]]; then
+                echo "❌ Error: $result"
+            else
+                local value=$(echo "$result" | jq -r '.result // "null"')
+                if [ "$value" = "null" ]; then
+                    echo "⚠️ Key not found or has no value"
+                else
+                    echo "\`\`\`"
+                    if echo "$value" | jq . >/dev/null 2>&1; then
+                        echo "$value" | jq .
+                    else
+                        echo "$value"
+                    fi
+                    echo "\`\`\`"
+                fi
+            fi
+            echo ""
+        done
+    } > "$filepath"
+    
+    echo "✅ Export completed!"
+    echo "📁 File saved: $filepath"
+}
+
+# Function to export keys to clipboard
+export_keys_to_clipboard() {
+    local keys=("$@")
+    
+    echo ""
+    echo "📋 Exporting ${#keys[@]} keys to clipboard..."
+    
+    # Check if termux-clipboard-set is available
+    if ! command -v termux-clipboard-set >/dev/null 2>&1; then
+        echo "⚠️ termux-clipboard-set not available. Showing content instead:"
+        echo ""
+    fi
+    
+    # Generate content
+    local content=""
+    content+="# Nyro Redis Key Export\n"
+    content+="Generated: $(date '+%Y-%m-%d %H:%M:%S')\n"
+    content+="Profile: $CURRENT_PROFILE\n"
+    content+="Keys exported: ${#keys[@]}\n\n"
+    
+    for key in "${keys[@]}"; do
+        content+="---\n"
+        content+="## $key\n\n"
+        
+        local result=$(redis_rest_call "POST" "/get/$key")
+        
+        if [[ "$result" == *"error"* ]]; then
+            content+="❌ Error: $result\n"
+        else
+            local value=$(echo "$result" | jq -r '.result // "null"')
+            if [ "$value" = "null" ]; then
+                content+="⚠️ Key not found or has no value\n"
+            else
+                content+="\`\`\`\n"
+                if echo "$value" | jq . >/dev/null 2>&1; then
+                    content+=$(echo "$value" | jq .)
+                    content+="\n"
+                else
+                    content+="$value\n"
+                fi
+                content+="\`\`\`\n"
+            fi
+        fi
+        content+="\n"
+    done
+    
+    # Copy to clipboard if available, otherwise display
+    if command -v termux-clipboard-set >/dev/null 2>&1; then
+        echo -e "$content" | termux-clipboard-set
+        echo "✅ Content copied to clipboard!"
+    else
+        echo "Content to copy:"
+        echo "=================="
+        echo -e "$content"
+    fi
+}
+
+# Function for interactive key scanner main flow
+scan_and_select_keys() {
+    echo ""
+    echo "🔍 Interactive Key Scanner & Selector"
+    echo "═══════════════════════════════════════"
+    echo "Current Profile: $CURRENT_PROFILE"
+    echo "Database URL: $CURRENT_URL"
+    echo ""
+    echo -n "Enter key scan pattern (use * for wildcards): "
+    read pattern
+    
+    # Sanitize pattern
+    if [ -z "$pattern" ]; then
+        pattern="*"
+        echo "📌 Using default pattern: *"
+    fi
+    
+    # Scan for keys
+    local keys_output
+    keys_output=$(scan_keys_by_pattern "$pattern")
+    
+    if [ $? -ne 0 ]; then
+        echo "❌ Failed to scan keys."
+        return 1
+    fi
+    
+    # Convert output to array
+    local keys=()
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            keys+=("$line")
+        fi
+    done <<< "$keys_output"
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "❌ No keys found matching pattern: $pattern"
+        return 1
+    fi
+    
+    echo "✅ Found ${#keys[@]} keys matching pattern: $pattern"
+    
+    # Interactive selection
+    local selected_keys_output
+    selected_keys_output=$(select_keys_interactive "${keys[@]}")
+    
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Convert selected keys to array
+    local selected_keys=()
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            selected_keys+=("$line")
+        fi
+    done <<< "$selected_keys_output"
+    
+    # Perform batch operations
+    batch_key_operations "${selected_keys[@]}"
+}
+
 # Main menu
 while true; do
     echo ""
@@ -367,9 +791,10 @@ while true; do
     echo "6) Get a key"
     echo "7) Delete a key"
     echo "8) List all keys"
+    echo "9) Scan & Select Keys (Interactive)"
     echo ""
     echo "Profile Management:"
-    echo "9) Switch database profile"
+    echo "10) Switch database profile"
     echo "0) Show profile info"
     echo ""
     echo "q) Quit"
@@ -402,6 +827,9 @@ while true; do
             list_keys
             ;;
         9)
+            scan_and_select_keys
+            ;;
+        10)
             switch_profile
             ;;
         0)
