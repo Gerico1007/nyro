@@ -99,6 +99,7 @@ PROFILE_PROFILENAME_TOKEN="..."
 - **default**: Points to tashdum (productivity database)
 - **musebase**: Creative and artistic data storage
 - **tashdum**: Task and productivity data storage
+- **threeways**: Multi-purpose data storage
 
 ## 🔧 Troubleshooting
 
