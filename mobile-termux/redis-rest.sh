@@ -404,13 +404,13 @@ case "$1" in
         echo "==================="
         echo "• default (current: $([[ "$CURRENT_PROFILE" == "default" ]] && echo "✅" || echo "○"))"
         
-        # Check for additional profiles
-        for profile in dev prod test; do
-            url_var="PROFILE_${profile^^}_URL"
-            if [ -n "${!url_var}" ]; then
-                echo "• $profile (current: $([[ "$CURRENT_PROFILE" == "$profile" ]] && echo "✅" || echo "○"))"
-            fi
-        done
+        # Dynamically detect all available profiles from .env file
+        if [ -f ".env" ]; then
+            for var in $(grep '^PROFILE_.*_URL=' .env | cut -d= -f1); do
+                profile_name=$(echo "$var" | sed 's/^PROFILE_//' | sed 's/_URL$//' | tr '[:upper:]' '[:lower:]')
+                echo "• $profile_name (current: $([[ "$CURRENT_PROFILE" == "$profile_name" ]] && echo "✅" || echo "○"))"
+            done
+        fi
         ;;
     
     profile-info)

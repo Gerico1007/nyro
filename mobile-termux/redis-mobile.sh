@@ -291,13 +291,13 @@ switch_profile() {
     echo "Available profiles:"
     echo "• default"
     
-    # Check for additional profiles
-    for profile in dev prod test; do
-        url_var="PROFILE_${profile^^}_URL"
-        if [ -n "${!url_var}" ]; then
-            echo "• $profile"
-        fi
-    done
+    # Dynamically detect all available profiles from .env file
+    if [ -f ".env" ]; then
+        for var in $(grep '^PROFILE_.*_URL=' .env | cut -d= -f1); do
+            profile_name=$(echo "$var" | sed 's/^PROFILE_//' | sed 's/_URL$//' | tr '[:upper:]' '[:lower:]')
+            echo "• $profile_name"
+        done
+    fi
     
     echo ""
     read -p "Enter profile name to switch to: " profile_name
