@@ -714,10 +714,10 @@ export_keys_to_clipboard() {
     fi
 }
 
-# Function for interactive key scanner main flow
+# Function for fzf-based key scanner with direct clipboard export
 scan_and_select_keys() {
     echo ""
-    echo "🔍 Interactive Key Scanner & Selector"
+    echo "🔍 Key Scanner & Clipboard Export"
     echo "═══════════════════════════════════════"
     echo "Current Profile: $CURRENT_PROFILE"
     echo "Database URL: $CURRENT_URL"
@@ -730,6 +730,8 @@ scan_and_select_keys() {
         pattern="*"
         echo "📌 Using default pattern: *"
     fi
+    
+    echo "🔍 Scanning for keys matching: $pattern ..."
     
     # Scan for keys
     local keys_output
@@ -740,90 +742,44 @@ scan_and_select_keys() {
         return 1
     fi
     
-    # Convert output to array
-    local keys=()
-    while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            keys+=("$line")
-        fi
-    done <<< "$keys_output"
-    
-    if [ ${#keys[@]} -eq 0 ]; then
+    if [ -z "$keys_output" ]; then
         echo "❌ No keys found matching pattern: $pattern"
         return 1
     fi
     
-    echo "✅ Found ${#keys[@]} keys matching pattern: $pattern"
+    echo "✅ Select keys (TAB to mark, ENTER to confirm):"
     
-    # Interactive selection
-    local selected_keys_output
-    selected_keys_output=$(select_keys_interactive "${keys[@]}")
-    
-    if [ $? -ne 0 ]; then
-        return 1
+    # Use fzf for multi-select if available, fallback to simple selection
+    local selected_keys
+    if command -v fzf >/dev/null 2>&1; then
+        selected_keys=$(echo "$keys_output" | fzf --multi --height=20 --border --prompt="Select keys: ")
+    else
+        echo "⚠️ fzf not available, using fallback selection..."
+        selected_keys=$(select_keys_fallback "$keys_output")
     fi
     
-    # Convert selected keys to array
-    local selected_keys=()
-    while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            selected_keys+=("$line")
-        fi
-    done <<< "$selected_keys_output"
+    if [ -z "$selected_keys" ]; then
+        echo "⚠️ No keys selected."
+        return 0
+    fi
     
-    # Perform batch operations
-    batch_key_operations "${selected_keys[@]}"
+    # Export directly to clipboard
+    export_selected_keys_clipboard "$selected_keys"
 }
 
-# Function for quick key scan with direct clipboard export
-scan_keys_quick_clipboard() {
-    echo ""
-    echo "🚀 Quick Key Scanner → Clipboard"
-    echo "═══════════════════════════════════════"
-    echo "Current Profile: $CURRENT_PROFILE"
-    echo "Database URL: $CURRENT_URL"
-    echo ""
-    echo -n "Enter key scan pattern (use * for wildcards): "
-    read pattern
-    
-    # Sanitize pattern
-    if [ -z "$pattern" ]; then
-        pattern="*"
-        echo "📌 Using default pattern: *"
-    fi
-    
-    # Scan for keys
-    local keys_output
-    keys_output=$(scan_keys_by_pattern "$pattern")
-    
-    if [ $? -ne 0 ]; then
-        return 1
-    fi
-    
-    # Convert to array
+# Fallback key selector when fzf is not available
+select_keys_fallback() {
+    local keys_input="$1"
     local keys=()
-    while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            keys+=("$line")
-        fi
-    done <<< "$keys_output"
-    
-    if [ ${#keys[@]} -eq 0 ]; then
-        echo "❌ No keys found matching pattern: $pattern"
-        return 1
-    fi
-    
-    echo "✅ Found ${#keys[@]} keys matching pattern"
-    
-    # Quick visual selection with direct clipboard export
-    select_keys_visual_clipboard "${keys[@]}"
-}
-
-# Visual key selector with direct clipboard export
-select_keys_visual_clipboard() {
-    local keys=("$@")
     local selected_keys=()
     local selections=()
+    
+    # Convert input to array
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            keys+=("$line")
+        fi
+    done <<< "$keys_input"
     
     if [ ${#keys[@]} -eq 0 ]; then
         echo "❌ No keys to select from."
@@ -851,7 +807,7 @@ select_keys_visual_clipboard() {
                 selected_marker=" [SELECTED]"
                 selected_count=$((selected_count + 1))
             fi
-            printf "%s%s%s\n" "$marker" "${keys[i]}" "$selected_marker"
+            printf "%2d) %s%s%s\n" $((i+1)) "$marker" "${keys[i]}" "$selected_marker"
         done
         
         echo "  ${#keys[@]}/${#keys[@]} ($selected_count selected) ─────────────────────────────────"
@@ -863,9 +819,7 @@ select_keys_visual_clipboard() {
         
         case "$input" in
             "")
-                # Enter pressed - export to clipboard
-                # Collect selected keys
-                selected_keys=()
+                # Enter pressed - return selected keys
                 for i in "${!keys[@]}"; do
                     if [ "${selections[i]}" = "true" ]; then
                         selected_keys+=("${keys[i]}")
@@ -877,15 +831,11 @@ select_keys_visual_clipboard() {
                     continue
                 fi
                 
-                echo ""
-                echo "📋 Copying ${#selected_keys[@]} keys to clipboard..."
-                
-                # Export directly to clipboard
-                export_keys_to_clipboard "${selected_keys[@]}"
+                # Return selected keys (one per line)
+                printf '%s\n' "${selected_keys[@]}"
                 return 0
                 ;;
             "q"|"quit")
-                echo "❌ Operation cancelled."
                 return 1
                 ;;
             "a"|"all")
@@ -921,6 +871,65 @@ select_keys_visual_clipboard() {
     done
 }
 
+# Export selected keys to clipboard with content
+export_selected_keys_clipboard() {
+    local selected_keys="$1"
+    local timestamp=$(date +"%y%m%d%H%M")
+    local content=""
+    
+    echo ""
+    echo "📋 Getting content for selected keys..."
+    
+    # Build combined content like the scanget.sh example
+    while IFS= read -r key; do
+        if [ -n "$key" ]; then
+            echo "📄 Getting: $key"
+            
+            # Get the key value
+            local result=$(redis_rest_call "POST" "/get/$key")
+            local value
+            
+            if [[ "$result" == *"error"* ]]; then
+                value="⚠️ Error getting content: $result"
+            else
+                # Parse the value from the result
+                value=$(echo "$result" | jq -r '.result // "⚠️ No content found."')
+                if [ "$value" = "null" ]; then
+                    value="⚠️ No content found."
+                fi
+            fi
+            
+            # Add to combined content
+            content+="# $key"$'\n'"$value"$'\n\n'
+        fi
+    done <<< "$selected_keys"
+    
+    if [ -z "$content" ]; then
+        echo "❌ No content to export."
+        return 1
+    fi
+    
+    # Create export directory if it doesn't exist
+    local export_dir="$HOME/nyro-exports"
+    mkdir -p "$export_dir"
+    
+    # Save to file with timestamp
+    local sanitized_pattern=$(echo "$pattern" | sed 's/[^a-zA-Z0-9_-]/_/g' | sed 's/_*$//')
+    local outfile="$export_dir/${timestamp}_${sanitized_pattern}_keys.md"
+    echo -e "$content" > "$outfile"
+    
+    # Copy to clipboard
+    if command -v termux-clipboard-set >/dev/null 2>&1; then
+        echo -e "$content" | termux-clipboard-set
+        echo "📋 Content copied to clipboard."
+    else
+        echo "⚠️ termux-clipboard-set not available. Content saved to file only."
+    fi
+    
+    echo "🗂️  File saved at: $outfile"
+    echo "✅ Export completed!"
+}
+
 # Main menu
 while true; do
     echo ""
@@ -937,11 +946,10 @@ while true; do
     echo "6) Get a key"
     echo "7) Delete a key"
     echo "8) List all keys"
-    echo "9) Scan & Select Keys (Interactive)"
-    echo "10) Quick Scan → Clipboard 🚀"
+    echo "9) Scan & Select Keys → Clipboard 🔍"
     echo ""
     echo "Profile Management:"
-    echo "11) Switch database profile"
+    echo "10) Switch database profile"
     echo "0) Show profile info"
     echo ""
     echo "q) Quit"
@@ -977,9 +985,6 @@ while true; do
             scan_and_select_keys
             ;;
         10)
-            scan_keys_quick_clipboard
-            ;;
-        11)
             switch_profile
             ;;
         0)

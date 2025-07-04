@@ -108,6 +108,13 @@ else
     exit 1
 fi
 
+print_aureon "Installing enhanced selection interface: fzf..."
+if pkg install -y fzf; then
+    print_aureon "✓ fzf installed - enhanced key selection available"
+else
+    print_warning "⚠️ fzf installation failed - will use fallback selection interface"
+fi
+
 print_aureon "Validating core dependency installation integrity..."
 if command -v curl &> /dev/null; then
     print_aureon "✓ curl: REST API communication anchor verified"
