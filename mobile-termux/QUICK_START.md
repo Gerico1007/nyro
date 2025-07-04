@@ -144,6 +144,49 @@ Exports are saved as markdown files with:
 - JSON formatting when applicable
 - Clear separation between entries
 
+## 🚀 Quick Scan → Clipboard (Enhanced!)
+
+### What is it?
+The Quick Scan → Clipboard feature (option 10) provides a streamlined workflow:
+- **Faster workflow**: Pattern → Visual selector → Direct clipboard
+- **Visual interface**: See all keys with selection indicators
+- **One-step export**: Press Enter to copy selected keys directly to clipboard
+- **Optimized for speed**: Perfect for frequent key copying tasks
+
+### How to use:
+1. **Choose option 10** from the main menu
+2. **Enter a pattern** (e.g., `walking*`, `user*`, `*`)
+3. **Visual selection**: Keys displayed with selection markers
+4. **Select keys**: Use numbers, 'a' for all, 'n' for none
+5. **Press Enter**: Selected keys copied directly to clipboard
+
+### Visual Interface Example:
+```
+📋 Select keys (Press Enter to copy to clipboard)
+─────────────────────────────────────────────────
+  walking:summary:250703
+  walking:payload:250703
+▌ walking:index:250703 [SELECTED]
+  walking:file:upload-files.sh:250703
+▌ walking:file:redis-mobile.sh:250703 [SELECTED]
+  ...
+  17/17 (2 selected) ─────────────────────────────────
+> 
+
+Commands: [numbers] select, [a]ll, [n]one, [Enter] copy to clipboard, [q]uit
+```
+
+### Quick Commands:
+- **Numbers**: `1 5 8` - Toggle selection of specific keys
+- **a** - Select all keys
+- **n** - Clear all selections  
+- **Enter** - Copy selected keys to clipboard
+- **q** - Cancel and return to menu
+
+### When to use Quick Scan vs Regular Scanner:
+- **Quick Scan (Option 10)**: When you want keys copied to clipboard quickly
+- **Regular Scanner (Option 9)**: When you need other operations (view values, delete, export to file)
+
 ## 🔧 Troubleshooting
 
 ### "curl: command not found"

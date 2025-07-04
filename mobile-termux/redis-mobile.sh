@@ -775,6 +775,152 @@ scan_and_select_keys() {
     batch_key_operations "${selected_keys[@]}"
 }
 
+# Function for quick key scan with direct clipboard export
+scan_keys_quick_clipboard() {
+    echo ""
+    echo "🚀 Quick Key Scanner → Clipboard"
+    echo "═══════════════════════════════════════"
+    echo "Current Profile: $CURRENT_PROFILE"
+    echo "Database URL: $CURRENT_URL"
+    echo ""
+    echo -n "Enter key scan pattern (use * for wildcards): "
+    read pattern
+    
+    # Sanitize pattern
+    if [ -z "$pattern" ]; then
+        pattern="*"
+        echo "📌 Using default pattern: *"
+    fi
+    
+    # Scan for keys
+    local keys_output
+    keys_output=$(scan_keys_by_pattern "$pattern")
+    
+    if [ $? -ne 0 ]; then
+        return 1
+    fi
+    
+    # Convert to array
+    local keys=()
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            keys+=("$line")
+        fi
+    done <<< "$keys_output"
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "❌ No keys found matching pattern: $pattern"
+        return 1
+    fi
+    
+    echo "✅ Found ${#keys[@]} keys matching pattern"
+    
+    # Quick visual selection with direct clipboard export
+    select_keys_visual_clipboard "${keys[@]}"
+}
+
+# Visual key selector with direct clipboard export
+select_keys_visual_clipboard() {
+    local keys=("$@")
+    local selected_keys=()
+    local selections=()
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "❌ No keys to select from."
+        return 1
+    fi
+    
+    # Initialize selections array
+    for i in "${!keys[@]}"; do
+        selections[i]=false
+    done
+    
+    while true; do
+        # Clear screen area and show selection
+        echo ""
+        echo "📋 Select keys (Press Enter to copy to clipboard)"
+        echo "─────────────────────────────────────────────────"
+        
+        # Display keys with visual selector
+        local selected_count=0
+        for i in "${!keys[@]}"; do
+            local marker="  "
+            local selected_marker=""
+            if [ "${selections[i]}" = "true" ]; then
+                marker="▌ "
+                selected_marker=" [SELECTED]"
+                selected_count=$((selected_count + 1))
+            fi
+            printf "%s%s%s\n" "$marker" "${keys[i]}" "$selected_marker"
+        done
+        
+        echo "  ${#keys[@]}/${#keys[@]} ($selected_count selected) ─────────────────────────────────"
+        echo "> "
+        echo ""
+        echo "Commands: [numbers] select, [a]ll, [n]one, [Enter] copy to clipboard, [q]uit"
+        echo -n "Selection: "
+        read input
+        
+        case "$input" in
+            "")
+                # Enter pressed - export to clipboard
+                # Collect selected keys
+                selected_keys=()
+                for i in "${!keys[@]}"; do
+                    if [ "${selections[i]}" = "true" ]; then
+                        selected_keys+=("${keys[i]}")
+                    fi
+                done
+                
+                if [ ${#selected_keys[@]} -eq 0 ]; then
+                    echo "⚠️ No keys selected. Please select keys first."
+                    continue
+                fi
+                
+                echo ""
+                echo "📋 Copying ${#selected_keys[@]} keys to clipboard..."
+                
+                # Export directly to clipboard
+                export_keys_to_clipboard "${selected_keys[@]}"
+                return 0
+                ;;
+            "q"|"quit")
+                echo "❌ Operation cancelled."
+                return 1
+                ;;
+            "a"|"all")
+                for i in "${!keys[@]}"; do
+                    selections[i]=true
+                done
+                echo "✅ All keys selected."
+                ;;
+            "n"|"none")
+                for i in "${!keys[@]}"; do
+                    selections[i]=false
+                done
+                echo "✅ All keys deselected."
+                ;;
+            *)
+                # Parse numbers
+                for num in $input; do
+                    if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le ${#keys[@]} ]; then
+                        local index=$((num - 1))
+                        if [ "${selections[index]}" = "true" ]; then
+                            selections[index]=false
+                            echo "○ Deselected: ${keys[index]}"
+                        else
+                            selections[index]=true
+                            echo "● Selected: ${keys[index]}"
+                        fi
+                    else
+                        echo "⚠️ Invalid selection: $num"
+                    fi
+                done
+                ;;
+        esac
+    done
+}
+
 # Main menu
 while true; do
     echo ""
@@ -792,9 +938,10 @@ while true; do
     echo "7) Delete a key"
     echo "8) List all keys"
     echo "9) Scan & Select Keys (Interactive)"
+    echo "10) Quick Scan → Clipboard 🚀"
     echo ""
     echo "Profile Management:"
-    echo "10) Switch database profile"
+    echo "11) Switch database profile"
     echo "0) Show profile info"
     echo ""
     echo "q) Quit"
@@ -830,6 +977,9 @@ while true; do
             scan_and_select_keys
             ;;
         10)
+            scan_keys_quick_clipboard
+            ;;
+        11)
             switch_profile
             ;;
         0)
