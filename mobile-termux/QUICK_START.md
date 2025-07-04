@@ -102,47 +102,78 @@ PROFILE_PROFILENAME_TOKEN="..."
 - **tashdum**: Task and productivity data storage
 - **threeways**: Multi-purpose data storage
 
-## 🔍 Key Scanner & Selector (New!)
+## 🔍 Key Scanner → Clipboard (Enhanced!)
 
 ### What is it?
-The Interactive Key Scanner & Selector (option 9) allows you to:
-- Search for keys using patterns (wildcards)
-- Select multiple keys at once
-- Perform batch operations on selected keys
-- Export data in organized formats
+The Key Scanner & Clipboard Export (option 9) provides a streamlined workflow inspired by `fzf`:
+- **Pattern-based search**: Find keys using wildcards
+- **Visual multi-select**: Use `fzf` for intuitive selection (TAB to mark, ENTER to confirm)
+- **Content export**: Gets actual key values, not just key names
+- **Direct to clipboard**: Content copied to clipboard + saved to file
+- **Timestamp organization**: Files saved with timestamps for easy tracking
 
 ### How to use:
 1. **Choose option 9** from the main menu
-2. **Enter a pattern** (e.g., `user*`, `art-*`, `task*`, or `*` for all)
-3. **Select keys** using numbers (space-separated) or commands
-4. **Choose operation**: get values, delete, export to file/clipboard
+2. **Enter a pattern** (e.g., `walking*`, `user*`, `*` for all)
+3. **Select keys with fzf**: 
+   - Use **TAB** to mark/unmark keys
+   - Use **ENTER** to confirm selection
+   - Navigate with arrow keys
+4. **Automatic export**: Selected key content copied to clipboard and saved to file
 
 ### Pattern Examples:
 - `*` - Find all keys
 - `user*` - Find keys starting with "user"
 - `*project*` - Find keys containing "project"
+- `walking*` - Find walking session keys
 - `art-*` - Find keys starting with "art-"
-- `task*` - Find productivity-related keys
 
-### Selection Commands:
-- **Numbers**: `1 3 5` - Select specific keys
-- **all** - Select all found keys
-- **none** - Clear all selections
-- **done** - Confirm selection and continue
-- **quit** - Cancel and return to menu
+### fzf Selection Interface:
+```
+✅ Select keys (TAB to mark, ENTER to confirm):
+> walking:summary:250703
+  walking:payload:250703
+▶ walking:index:250703
+  walking:file:upload-files.sh:250703
+  walking:file:redis-mobile.sh:250703
+  ...
+  17/17 (+) [17/17]
+```
 
-### Batch Operations:
-1. **Get Values** - Display all selected key values
-2. **Delete Keys** - Remove selected keys (with confirmation)
-3. **Export to File** - Save to `~/nyro-exports/` with timestamp
-4. **Export to Clipboard** - Copy formatted data (if available)
+### Key Features:
+- **Smart fallback**: If `fzf` not available, uses built-in visual selector
+- **Content retrieval**: Gets actual values from Redis for each selected key
+- **Dual export**: Both clipboard and timestamped file export
+- **Organized format**: Each key becomes a markdown section with its content
 
 ### Export Format:
-Exports are saved as markdown files with:
-- Timestamp and profile information
-- Organized key-value sections
-- JSON formatting when applicable
-- Clear separation between entries
+Content is exported as markdown with:
+```markdown
+# walking:index:250703
+{
+  "walking_session": {
+    "date": "2025-07-03",
+    ...
+  }
+}
+
+# walking:file:redis-mobile.sh:250703
+#!/bin/bash
+# Enhanced redis mobile script...
+```
+
+### Output:
+- **Clipboard**: Content immediately available for pasting
+- **File**: Saved to `~/nyro-exports/YYMMDD_HHMM_pattern_keys.md`
+- **Feedback**: Shows progress and completion status
+
+### Fallback Mode (without fzf):
+If `fzf` is not installed, uses numbered selection:
+- **Numbers**: `1 3 5` - Select specific keys
+- **a** - Select all found keys  
+- **n** - Clear all selections
+- **Enter** - Export selected keys
+- **q** - Cancel and return to menu
 
 ## 🔧 Troubleshooting
 

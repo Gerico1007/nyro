@@ -714,10 +714,10 @@ export_keys_to_clipboard() {
     fi
 }
 
-# Function for interactive key scanner main flow
+# Function for fzf-based key scanner with direct clipboard export
 scan_and_select_keys() {
     echo ""
-    echo "🔍 Interactive Key Scanner & Selector"
+    echo "🔍 Key Scanner & Clipboard Export"
     echo "═══════════════════════════════════════"
     echo "Current Profile: $CURRENT_PROFILE"
     echo "Database URL: $CURRENT_URL"
@@ -731,6 +731,8 @@ scan_and_select_keys() {
         echo "📌 Using default pattern: *"
     fi
     
+    echo "🔍 Scanning for keys matching: $pattern ..."
+    
     # Scan for keys
     local keys_output
     keys_output=$(scan_keys_by_pattern "$pattern")
@@ -740,39 +742,192 @@ scan_and_select_keys() {
         return 1
     fi
     
-    # Convert output to array
-    local keys=()
-    while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            keys+=("$line")
-        fi
-    done <<< "$keys_output"
-    
-    if [ ${#keys[@]} -eq 0 ]; then
+    if [ -z "$keys_output" ]; then
         echo "❌ No keys found matching pattern: $pattern"
         return 1
     fi
     
-    echo "✅ Found ${#keys[@]} keys matching pattern: $pattern"
+    echo "✅ Select keys (TAB to mark, ENTER to confirm):"
     
-    # Interactive selection
-    local selected_keys_output
-    selected_keys_output=$(select_keys_interactive "${keys[@]}")
+    # Use fzf for multi-select if available, fallback to simple selection
+    local selected_keys
+    if command -v fzf >/dev/null 2>&1; then
+        selected_keys=$(echo "$keys_output" | fzf --multi --height=20 --border --prompt="Select keys: ")
+    else
+        echo "⚠️ fzf not available, using fallback selection..."
+        selected_keys=$(select_keys_fallback "$keys_output")
+    fi
     
-    if [ $? -ne 0 ]; then
+    if [ -z "$selected_keys" ]; then
+        echo "⚠️ No keys selected."
+        return 0
+    fi
+    
+    # Export directly to clipboard
+    export_selected_keys_clipboard "$selected_keys"
+}
+
+# Fallback key selector when fzf is not available
+select_keys_fallback() {
+    local keys_input="$1"
+    local keys=()
+    local selected_keys=()
+    local selections=()
+    
+    # Convert input to array
+    while IFS= read -r line; do
+        if [ -n "$line" ]; then
+            keys+=("$line")
+        fi
+    done <<< "$keys_input"
+    
+    if [ ${#keys[@]} -eq 0 ]; then
+        echo "❌ No keys to select from."
         return 1
     fi
     
-    # Convert selected keys to array
-    local selected_keys=()
-    while IFS= read -r line; do
-        if [ -n "$line" ]; then
-            selected_keys+=("$line")
-        fi
-    done <<< "$selected_keys_output"
+    # Initialize selections array
+    for i in "${!keys[@]}"; do
+        selections[i]=false
+    done
     
-    # Perform batch operations
-    batch_key_operations "${selected_keys[@]}"
+    while true; do
+        # Clear screen area and show selection
+        echo ""
+        echo "📋 Select keys (Press Enter to copy to clipboard)"
+        echo "─────────────────────────────────────────────────"
+        
+        # Display keys with visual selector
+        local selected_count=0
+        for i in "${!keys[@]}"; do
+            local marker="  "
+            local selected_marker=""
+            if [ "${selections[i]}" = "true" ]; then
+                marker="▌ "
+                selected_marker=" [SELECTED]"
+                selected_count=$((selected_count + 1))
+            fi
+            printf "%2d) %s%s%s\n" $((i+1)) "$marker" "${keys[i]}" "$selected_marker"
+        done
+        
+        echo "  ${#keys[@]}/${#keys[@]} ($selected_count selected) ─────────────────────────────────"
+        echo "> "
+        echo ""
+        echo "Commands: [numbers] select, [a]ll, [n]one, [Enter] copy to clipboard, [q]uit"
+        echo -n "Selection: "
+        read input
+        
+        case "$input" in
+            "")
+                # Enter pressed - return selected keys
+                for i in "${!keys[@]}"; do
+                    if [ "${selections[i]}" = "true" ]; then
+                        selected_keys+=("${keys[i]}")
+                    fi
+                done
+                
+                if [ ${#selected_keys[@]} -eq 0 ]; then
+                    echo "⚠️ No keys selected. Please select keys first."
+                    continue
+                fi
+                
+                # Return selected keys (one per line)
+                printf '%s\n' "${selected_keys[@]}"
+                return 0
+                ;;
+            "q"|"quit")
+                return 1
+                ;;
+            "a"|"all")
+                for i in "${!keys[@]}"; do
+                    selections[i]=true
+                done
+                echo "✅ All keys selected."
+                ;;
+            "n"|"none")
+                for i in "${!keys[@]}"; do
+                    selections[i]=false
+                done
+                echo "✅ All keys deselected."
+                ;;
+            *)
+                # Parse numbers
+                for num in $input; do
+                    if [[ "$num" =~ ^[0-9]+$ ]] && [ "$num" -ge 1 ] && [ "$num" -le ${#keys[@]} ]; then
+                        local index=$((num - 1))
+                        if [ "${selections[index]}" = "true" ]; then
+                            selections[index]=false
+                            echo "○ Deselected: ${keys[index]}"
+                        else
+                            selections[index]=true
+                            echo "● Selected: ${keys[index]}"
+                        fi
+                    else
+                        echo "⚠️ Invalid selection: $num"
+                    fi
+                done
+                ;;
+        esac
+    done
+}
+
+# Export selected keys to clipboard with content
+export_selected_keys_clipboard() {
+    local selected_keys="$1"
+    local timestamp=$(date +"%y%m%d%H%M")
+    local content=""
+    
+    echo ""
+    echo "📋 Getting content for selected keys..."
+    
+    # Build combined content like the scanget.sh example
+    while IFS= read -r key; do
+        if [ -n "$key" ]; then
+            echo "📄 Getting: $key"
+            
+            # Get the key value
+            local result=$(redis_rest_call "POST" "/get/$key")
+            local value
+            
+            if [[ "$result" == *"error"* ]]; then
+                value="⚠️ Error getting content: $result"
+            else
+                # Parse the value from the result
+                value=$(echo "$result" | jq -r '.result // "⚠️ No content found."')
+                if [ "$value" = "null" ]; then
+                    value="⚠️ No content found."
+                fi
+            fi
+            
+            # Add to combined content
+            content+="# $key"$'\n'"$value"$'\n\n'
+        fi
+    done <<< "$selected_keys"
+    
+    if [ -z "$content" ]; then
+        echo "❌ No content to export."
+        return 1
+    fi
+    
+    # Create export directory if it doesn't exist
+    local export_dir="$HOME/nyro-exports"
+    mkdir -p "$export_dir"
+    
+    # Save to file with timestamp
+    local sanitized_pattern=$(echo "$pattern" | sed 's/[^a-zA-Z0-9_-]/_/g' | sed 's/_*$//')
+    local outfile="$export_dir/${timestamp}_${sanitized_pattern}_keys.md"
+    echo -e "$content" > "$outfile"
+    
+    # Copy to clipboard
+    if command -v termux-clipboard-set >/dev/null 2>&1; then
+        echo -e "$content" | termux-clipboard-set
+        echo "📋 Content copied to clipboard."
+    else
+        echo "⚠️ termux-clipboard-set not available. Content saved to file only."
+    fi
+    
+    echo "🗂️  File saved at: $outfile"
+    echo "✅ Export completed!"
 }
 
 # Main menu
@@ -791,7 +946,7 @@ while true; do
     echo "6) Get a key"
     echo "7) Delete a key"
     echo "8) List all keys"
-    echo "9) Scan & Select Keys (Interactive)"
+    echo "9) Scan & Select Keys → Clipboard 🔍"
     echo ""
     echo "Profile Management:"
     echo "10) Switch database profile"
