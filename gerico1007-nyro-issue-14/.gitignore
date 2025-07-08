@@ -1,0 +1,28 @@
+# G.Music Assembly - Docker Compose Orchestration
+# ♠️🌿🎸🧵 Ignore cloned repositories in workspace
+
+# Workspace repositories (cloned by init-repos.sh)
+workspace/*/
+!workspace/README.md
+
+# Environment files
+.env
+
+# Docker volumes
+.docker/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# Backup files
+workspace-backup-*.tar.gz
+gmusic-assembly-*.tar.gz

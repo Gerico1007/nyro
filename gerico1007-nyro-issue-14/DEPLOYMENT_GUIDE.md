@@ -1,0 +1,217 @@
+# G.Music Assembly - Docker Compose Deployment Guide
+# ♠️🌿🎸🧵 Complete Orchestration System
+
+## Quick Start
+
+### Prerequisites
+- Docker and Docker Compose installed
+- SSH keys configured for GitHub access
+- Git configured on your system
+
+### 1. Initial Setup
+```bash
+# Clone this orchestration repository
+git clone <repository-url>
+cd gerico1007-nyro-issue-14
+
+# Build the development environment
+make build
+
+# Initialize all repositories
+make init
+```
+
+### 2. Development Usage
+
+#### Access Individual Repositories
+```bash
+# Open shell in specific repository
+make shell-nyro
+make shell-orpheus
+make shell-echonexus
+# ... etc for each repository
+
+# General development shell
+make shell
+```
+
+#### Profile-Based Deployment
+```bash
+# Start specific repository service
+docker compose --profile nyro up -d
+
+# Start all services
+make start-all
+
+# Stop all services
+make down
+```
+
+#### Common Commands
+```bash
+# Show help
+make help
+
+# Check system status
+make assembly-status
+
+# Validate configuration
+make validate-config
+
+# Run security checks
+make validate-security
+
+# Complete validation suite
+make test
+```
+
+## Repository Structure
+
+| Shortcut | Repository | Type | Dependencies |
+|----------|------------|------|-------------|
+| EN | EchoNexus | Python | Poetry |
+| OR | Orpheus | Python | Poetry |
+| EH | EdgeHub | Python | - |
+| ET | EchoThreads | Python | Poetry |
+| EA | EA | Python | - |
+| CV | CreerSaVieHelper | Python | - |
+| WF | WhiteFeathers | Python | - |
+| T | tushell | Python | - |
+| N | Nyro | Python | - |
+| JC | Jamai-core | Python | - |
+| NP | NyroPortal | Python | - |
+| SS | SharedSpark | Python | - |
+
+## Architecture
+
+### Docker Compose Services
+- **Base Service**: `dev` - Shared development environment
+- **Repository Services**: Individual services per repository
+- **Profiles**: Group services for selective deployment
+- **Networks**: Isolated `dev-network` for secure communication
+- **Volumes**: Persistent workspace storage
+
+### Security Features
+- SSH key mounting for secure Git operations
+- Environment variable management with `.env` support
+- Read-only configuration mounting
+- Network isolation
+- No hardcoded secrets
+
+### Performance Optimizations
+- Shared base Docker image (Python 3.11-slim)
+- Docker Compose `extends` pattern
+- Profile-based deployment for resource management
+- Persistent volume mounting
+- Layer caching optimization
+
+## Development Workflows
+
+### Starting a New Feature
+```bash
+# Start specific repository service
+docker compose --profile <repo-name> up -d
+
+# Access the repository
+make shell-<repo-name>
+
+# Work within the container
+cd /workspace/<repo-name>
+# ... make your changes ...
+```
+
+### Multi-Repository Development
+```bash
+# Start all services
+make start-all
+
+# Access different repositories in separate terminals
+make shell-nyro     # Terminal 1
+make shell-orpheus  # Terminal 2
+make shell-ea       # Terminal 3
+```
+
+### Backup and Restore
+```bash
+# Create workspace backup
+make workspace-backup
+
+# Restore from backup
+tar -xzf workspace-backup-YYYYMMDD-HHMMSS.tar.gz
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### SSH Authentication
+- Ensure SSH keys are properly configured
+- Check SSH agent is running
+- Verify GitHub SSH access: `ssh -T git@github.com`
+
+#### Permission Issues
+- Check file permissions on `.env` files
+- Ensure SSH keys have correct permissions (600)
+- Verify Docker has access to mounted volumes
+
+#### Build Issues
+- Clean Docker cache: `docker system prune`
+- Rebuild images: `make build`
+- Check for disk space issues
+
+#### Network Issues
+- Reset Docker networks: `docker network prune`
+- Restart Docker daemon
+- Check for port conflicts
+
+### Debugging Commands
+```bash
+# Check container logs
+docker compose logs <service-name>
+
+# Inspect container
+docker compose exec <service-name> /bin/bash
+
+# Check Docker resources
+docker system df
+
+# Validate configuration
+make validate-config
+```
+
+## Advanced Usage
+
+### Custom Environment Variables
+Create `.env` file from template:
+```bash
+cp .env.example .env
+# Edit .env with your specific values
+```
+
+### Adding New Repositories
+1. Update `scripts/init-repos.sh` with new repository
+2. Add service definition to `docker-compose.yml`
+3. Add Makefile targets for the new repository
+4. Rebuild and reinitialize
+
+### Performance Tuning
+- Use profiles to limit resource usage
+- Monitor with `docker stats`
+- Adjust container resource limits in compose file
+- Use Docker BuildKit for faster builds
+
+## Support
+
+### Documentation
+- `SECURITY.md` - Security best practices
+- `testing/ASSEMBLY_LEDGER.md` - Implementation details
+- `assembly_session_melody.abc` - Musical notation documentation
+
+### Validation
+- Run `make test` for comprehensive validation
+- Use `make validate-security` for security checks
+- Check `make assembly-status` for system overview
+
+---
+*Generated by G.Music Assembly - ♠️🌿🎸🧵*
+*Docker Compose Orchestration System - Issue #14*
