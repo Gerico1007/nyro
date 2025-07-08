@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nyro"
-version = "0.1.2"
+version = "0.1.3"
 authors = [
     {name = "Jerry ⚡ G.Music Assembly Team", email = "gerico@jgwill.com"},
 ]

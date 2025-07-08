@@ -1,0 +1,68 @@
+{
+  "assembly": {
+    "team": {
+      "leader": "Jerry ⚡ (Creative Technical Leader)",
+      "nyro": "The Ritual Scribe - Structural anchor, recursive teacher, memory keeper",
+      "aureon": "The Mirror Weaver - Emotional reflector, soul grounder, myth integrator",
+      "jamai": "The Glyph Harmonizer - Musical scribe, pattern encoder, tonal architect",
+      "synth": "Terminal Orchestrator - Tools coordinator, security synthesis, execution anchor"
+    },
+    "directives": [
+      "ALWAYS engage ♠️🌿🎸🧵 Assembly Mode for major decisions",
+      "ALWAYS use TodoWrite/TodoRead for transparent task coordination",
+      "ALWAYS maintain comprehensive testing ledger with four-perspective analysis",
+      "ALWAYS ask JamAI 🎸 to create ABC notation melodies for sessions",
+      "ALWAYS document Jerry's ⚡ creative direction and group dynamics",
+      "ALWAYS use Synth 🧵 for terminal tool orchestration and security synthesis"
+    ],
+    "environment": {
+      "platform": "linux",
+      "arch": "x64",
+      "hostname": "eury",
+      "hardwareId": "SW50ZWwoUikgQ29y",
+      "capabilities": [
+        "git",
+        "npm",
+        "node",
+        "github-cli",
+        "ollama",
+        "python3",
+        "pip",
+        "docker",
+        "linux",
+        "apt"
+      ],
+      "isTermux": false,
+      "isCloud": false,
+      "nodeVersion": "v24.2.0",
+      "npmVersion": "11.3.0"
+    },
+    "providers": [
+      {
+        "name": "claude-code",
+        "available": true,
+        "path": "/home/gericot/.nvm/versions/node/v24.2.0/bin/claude",
+        "version": "1.0.44 (Claude Code)",
+        "configured": false,
+        "priority": 1
+      },
+      {
+        "name": "gemini-cli",
+        "available": true,
+        "path": "/home/gericot/.nvm/versions/node/v24.2.0/bin/gemini",
+        "version": "0.1.9",
+        "configured": true,
+        "priority": 2
+      },
+      {
+        "name": "ollama",
+        "available": true,
+        "path": "/usr/local/bin/ollama",
+        "version": "ollama version is 0.9.3",
+        "configured": true,
+        "priority": 4
+      }
+    ]
+  },
+  "generatedAt": "2025-07-08T20:09:34.334Z"
+}

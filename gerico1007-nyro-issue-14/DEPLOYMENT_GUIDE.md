@@ -92,11 +92,12 @@ make test
 - **Volumes**: Persistent workspace storage
 
 ### Security Features
-- SSH key mounting for secure Git operations
+- SSH key mounting for secure Git operations (mounted to ubuntu user home)
 - Environment variable management with `.env` support
 - Read-only configuration mounting
 - Network isolation
 - No hardcoded secrets
+- Non-root user execution (ubuntu user with UID 1000)
 
 ### Performance Optimizations
 - Shared base Docker image (Python 3.11-slim)

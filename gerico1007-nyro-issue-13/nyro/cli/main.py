@@ -31,7 +31,7 @@ def create_parser() -> argparse.ArgumentParser:
     # Global options
     parser.add_argument('--profile', '-p', help='Redis profile to use')
     parser.add_argument('--musical', '-m', action='store_true', help='Enable musical ledger')
-    parser.add_argument('--version', '-v', action='version', version='Nyro 0.1.0')
+    parser.add_argument('--version', '-v', action='version', version='Nyro 0.1.3')
     
     # Subcommands
     subparsers = parser.add_subparsers(dest='command', help='Available commands')

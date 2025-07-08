@@ -6,12 +6,13 @@ services:
       dockerfile: Dockerfile
     volumes:
       - workspace:/workspace
-      - ~/.ssh:/root/.ssh:ro
-      - ~/.gitconfig:/root/.gitconfig:ro
+      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig:ro
     environment:
       - ENV=${ENV:-dev}
       - GITHUB_TOKEN=${GITHUB_TOKEN:-}
       - PYTHONPATH=/workspace
+      - HOME=/home/ubuntu
     working_dir: /workspace
     stdin_open: true
     tty: true

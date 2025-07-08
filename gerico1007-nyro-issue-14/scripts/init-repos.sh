@@ -10,7 +10,9 @@ echo "🚀 Initializing G.Music Assembly Workspace..."
 # Setup SSH for GitHub
 echo "🔐 Configuring SSH for GitHub..."
 mkdir -p ~/.ssh
+chmod 700 ~/.ssh
 ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null || echo "SSH key scanning completed"
+chmod 644 ~/.ssh/known_hosts
 
 # Repository definitions
 declare -A REPOS=(
