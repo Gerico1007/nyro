@@ -246,3 +246,56 @@ K:{melody.key_signature}
             rhythmic_pattern=rhythmic_patterns.get(team_member),
             team_member=team_member
         )
+    
+    def add_redis_operation(self, operation: str, key: str, data_size: int = 0, database: str = 'default') -> None:
+        """Add Redis operation with automatic musical composition."""
+        from .composer import SessionComposer
+        
+        # Create composer instance
+        composer = SessionComposer(self)
+        
+        # Generate ABC notation for this operation
+        abc_notation = composer.compose_redis_operation(operation, data_size, database)
+        
+        # Determine team member based on operation type
+        team_mapping = {
+            'SET': '🧵',  # Synth: Terminal operations
+            'GET': '♠️',  # Nyro: Data retrieval/navigation
+            'XADD': '🌿', # Aureon: Garden/diary entries
+            'XRANGE': '🎸', # JamAI: Harmonic sequence queries
+            'DEL': '🧵'   # Synth: Cleanup operations
+        }
+        
+        team_member = team_mapping.get(operation.upper(), '🧵')
+        
+        # Add musical entry
+        self.add_entry(
+            activity_type=f"redis_{operation.lower()}",
+            description=f"Redis {operation}: {key} (size: {data_size}B, db: {database})",
+            abc_notation=abc_notation,
+            team_member=team_member
+        )
+        
+        # Update session melody with the new notation
+        if self.current_session_id in self.session_melodies:
+            melody = self.session_melodies[self.current_session_id]
+            if melody.abc_notation:
+                melody.abc_notation += f" {abc_notation}"
+            else:
+                melody.abc_notation = abc_notation
+            self._save_ledger()
+    
+    def export_session_music(self, session_id: Optional[str] = None, format: str = 'abc') -> str:
+        """Export complete session as musical composition."""
+        from .composer import SessionComposer
+        
+        target_session = session_id or self.current_session_id
+        if not target_session:
+            return ""
+            
+        composer = SessionComposer(self)
+        
+        if format == 'story':
+            return composer.generate_session_story(target_session)
+        else:
+            return composer.export_full_composition(target_session)

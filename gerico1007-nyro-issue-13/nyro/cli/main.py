@@ -87,8 +87,9 @@ def create_parser() -> argparse.ArgumentParser:
     
     # Musical ledger
     music_parser = subparsers.add_parser('music', help='Musical ledger operations')
-    music_parser.add_argument('action', choices=['summary', 'export'], help='Music action')
+    music_parser.add_argument('action', choices=['summary', 'export', 'story'], help='Music action')
     music_parser.add_argument('--session', '-s', help='Session ID')
+    music_parser.add_argument('--format', '-f', choices=['abc', 'story'], default='abc', help='Export format')
     
     # Test connection
     test_parser = subparsers.add_parser('test', help='Test Redis connection')
@@ -107,7 +108,8 @@ def handle_basic_operations(args, client: RedisClient, musical_ledger: Optional[
         if success:
             print(f"✅ Set {args.key} = {args.value}")
             if musical_ledger:
-                musical_ledger.add_team_activity("🧵", "set_key", f"CLI set: {args.key}")
+                data_size = len(str(args.value))
+                musical_ledger.add_redis_operation('SET', args.key, data_size)
         else:
             print(f"❌ Failed to set {args.key}")
             sys.exit(1)
@@ -117,7 +119,8 @@ def handle_basic_operations(args, client: RedisClient, musical_ledger: Optional[
         if value is not None:
             print(value)
             if musical_ledger:
-                musical_ledger.add_team_activity("🧵", "get_key", f"CLI get: {args.key}")
+                data_size = len(str(value)) if value else 0
+                musical_ledger.add_redis_operation('GET', args.key, data_size)
         else:
             print(f"❌ Key '{args.key}' not found", file=sys.stderr)
             sys.exit(1)
@@ -127,7 +130,7 @@ def handle_basic_operations(args, client: RedisClient, musical_ledger: Optional[
         if success:
             print(f"🗑️ Deleted {args.key}")
             if musical_ledger:
-                musical_ledger.add_team_activity("🧵", "delete_key", f"CLI delete: {args.key}")
+                musical_ledger.add_redis_operation('DEL', args.key, 0)
         else:
             print(f"❌ Failed to delete {args.key}")
             sys.exit(1)
@@ -379,8 +382,25 @@ def main():
                 summary = musical_ledger.generate_session_summary(args.session)
                 print(summary)
             elif args.action == 'export':
-                abc_file = musical_ledger.export_abc_file(args.session)
-                print(f"🎼 Exported to: {abc_file}")
+                if args.format == 'story':
+                    composition = musical_ledger.export_session_music(args.session, 'story')
+                    if composition:
+                        filename = f"redis_session_story_{args.session or 'current'}.abc"
+                        with open(filename, 'w') as f:
+                            f.write(composition)
+                        print(f"🎭 Exported session story to: {filename}")
+                    else:
+                        print("❌ No session data to export")
+                else:
+                    abc_file = musical_ledger.export_abc_file(args.session)
+                    print(f"🎼 Exported to: {abc_file}")
+            elif args.action == 'story':
+                composition = musical_ledger.export_session_music(args.session, 'story')
+                if composition:
+                    print("🎭 Redis Session Musical Story:")
+                    print(composition)
+                else:
+                    print("❌ No session data to display")
                 
         elif args.command == 'test':
             connection_ok = client.test_connection()
