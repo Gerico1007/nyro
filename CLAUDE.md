@@ -177,6 +177,31 @@ pkg install curl jq git
 - Error handling includes user-friendly mobile messages with emojis
 - No build/test/lint commands - pure bash scripting with validation via actual API calls
 
+## Git Configuration (Updated 2025-07-17)
+
+### Repository Authentication
+- **Remote URL**: `https://github.com/Gerico1007/nyro.git` (HTTPS authentication)
+- **Previous Issue**: SSH host key verification failures in Termux environment
+- **Solution**: Migrated from SSH to HTTPS authentication
+- **Status**: Fully functional git workflow (pull, add, commit, push)
+
+### Git Workflow Commands
+```bash
+# Standard workflow now working with HTTPS
+git pull              # Pull latest changes
+git add .            # Stage changes
+git commit -m "msg"  # Commit with message
+git push             # Push to remote
+
+# Verify remote configuration
+git remote -v        # Should show HTTPS URLs
+```
+
+### Recent Commit Activity
+- **Latest Commit**: `1870d14` - "feat: update project documentation and SSH agent improvements"
+- **Files Changed**: 19 files, 1970 insertions
+- **Includes**: Musical ledger updates, SSH agent analysis, assembly documentation, ABC notation melodies
+
 ## Four-Perspective Testing Framework
 
 When working with this project, use the multi-perspective testing approach:
