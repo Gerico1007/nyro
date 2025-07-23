@@ -40,7 +40,7 @@ musical_requirements = [
 
 setup(
     name="nyro",
-    version="0.1.2",
+    version="0.1.3",
     author="Jerry ⚡ G.Music Assembly Team",
     author_email="gerico@jgwill.com",
     description="♠️🌿🎸🧵 Unified Redis Operations Package - Consolidating 13+ bash scripts",

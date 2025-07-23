@@ -26,26 +26,35 @@ class ProfileConfig:
 class ProfileManager:
     """Manages multiple Redis database profiles and credentials."""
     
-    def __init__(self, env_file: Optional[str] = None):
+    def __init__(self, env_file: Optional[str] = None, debug: bool = False):
         """Initialize profile manager with environment file."""
+        self.debug = debug
         self.env_file = env_file or self._find_env_file()
         self.profiles: Dict[str, ProfileConfig] = {}
         self.current_profile: Optional[str] = None
         self._load_profiles()
     
     def _find_env_file(self) -> str:
-        """Find .env file following bash script patterns."""
+        """Find .env file following enhanced search pattern."""
         candidates = [
-            ".env",
-            "/workspace/.env", 
-            os.path.expanduser("~/.nyro/.env")
+            ".env",                                    # Current directory first
+            os.path.expanduser("~/.env"),              # Home directory second
+            os.path.expanduser("~/.nyro/.env"),        # Nyro config directory third
+            "/workspace/.env"                          # Workspace fallback
         ]
         
         for candidate in candidates:
             if os.path.exists(candidate):
+                if self.debug:
+                    print(f"🔍 Using .env file: {candidate}")
                 return candidate
-                
-        raise FileNotFoundError("No .env file found. Run install.sh or create manually.")
+        
+        # Enhanced error message with all searched locations
+        locations = "\n  ".join(candidates)
+        raise FileNotFoundError(
+            f"No .env file found in any of these locations:\n  {locations}\n"
+            f"Create a .env file in the current directory or run 'nyro init' to set up configuration."
+        )
     
     def _load_profiles(self) -> None:
         """Load all profiles from environment file."""
@@ -123,3 +132,18 @@ class ProfileManager:
         """Validate that profile has required credentials."""
         profile = self.profiles.get(name)
         return profile is not None and bool(profile.url) and bool(profile.token)
+    
+    def get_env_file_info(self) -> Dict[str, Any]:
+        """Get information about the current .env file and search order."""
+        candidates = [
+            ".env",
+            os.path.expanduser("~/.env"),
+            os.path.expanduser("~/.nyro/.env"),
+            "/workspace/.env"
+        ]
+        
+        return {
+            "current_env_file": self.env_file,
+            "search_order": candidates,
+            "exists_status": {path: os.path.exists(path) for path in candidates}
+        }
