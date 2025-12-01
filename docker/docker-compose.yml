@@ -1,0 +1,106 @@
+services:
+  # Base development service
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - workspace:/workspace
+      - ${HOME}/.ssh:/home/ubuntu/.ssh:ro
+      - ${HOME}/.gitconfig:/home/ubuntu/.gitconfig:ro
+    environment:
+      - ENV=${ENV:-dev}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - PYTHONPATH=/workspace
+      - HOME=/home/ubuntu
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: /bin/bash
+    networks:
+      - dev-network
+
+  # Individual repository services
+  echonexus:
+    extends: dev
+    working_dir: /workspace/EchoNexus
+    container_name: echonexus-dev
+    profiles: ["echonexus", "all"]
+
+  orpheus:
+    extends: dev
+    working_dir: /workspace/orpheus
+    container_name: orpheus-dev
+    profiles: ["orpheus", "all"]
+
+  edgehub:
+    extends: dev
+    working_dir: /workspace/edgehub
+    container_name: edgehub-dev
+    profiles: ["edgehub", "all"]
+
+  echothreads:
+    extends: dev
+    working_dir: /workspace/EchoThreads
+    container_name: echothreads-dev
+    profiles: ["echothreads", "all"]
+
+  ea:
+    extends: dev
+    working_dir: /workspace/ea
+    container_name: ea-dev
+    profiles: ["ea", "all"]
+
+  creersaviehelper:
+    extends: dev
+    working_dir: /workspace/CreerSaVieHelper
+    container_name: creersaviehelper-dev
+    profiles: ["creersaviehelper", "all"]
+
+  whitefeathers:
+    extends: dev
+    working_dir: /workspace/whitefeathers
+    container_name: whitefeathers-dev
+    profiles: ["whitefeathers", "all"]
+
+  tushell:
+    extends: dev
+    working_dir: /workspace/tushell
+    container_name: tushell-dev
+    profiles: ["tushell", "all"]
+
+  nyro:
+    extends: dev
+    working_dir: /workspace/nyro
+    container_name: nyro-dev
+    profiles: ["nyro", "all"]
+
+  jamai-core:
+    extends: dev
+    working_dir: /workspace/Jamai-core
+    container_name: jamai-core-dev
+    profiles: ["jamai-core", "all"]
+
+  nyroportal:
+    extends: dev
+    working_dir: /workspace/nyroportal
+    container_name: nyroportal-dev
+    profiles: ["nyroportal", "all"]
+
+  sharedspark:
+    extends: dev
+    working_dir: /workspace/SharedSpark
+    container_name: sharedspark-dev
+    profiles: ["sharedspark", "all"]
+
+volumes:
+  workspace:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/gmusic/workspace
+
+networks:
+  dev-network:
+    driver: bridge
