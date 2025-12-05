@@ -111,29 +111,33 @@ echo -e "  Timestamp:   ${GREEN}${TIMESTAMP}${NC}"
 echo -e "  Priority:    ${GREEN}${PRIORITY}${NC}"
 [ -n "$SECTION" ] && echo -e "  Section:     ${GREEN}${SECTION}${NC}"
 
-# Build Redis command
-if [ -n "$SECTION" ]; then
-    REDIS_CMD="XADD ${STREAM_KEY} * instruction '${INSTRUCTION}' timestamp '${TIMESTAMP}' priority '${PRIORITY}' section '${SECTION}'"
-else
-    REDIS_CMD="XADD ${STREAM_KEY} * instruction '${INSTRUCTION}' timestamp '${TIMESTAMP}' priority '${PRIORITY}'"
-fi
-
 echo -e "\n${YELLOW}📡 Sending to Redis...${NC}"
 
-# Send command
-RESPONSE=$(curl -s -X POST \
-    -H "Authorization: Bearer ${API_TOKEN}" \
-    -H "Content-Type: application/json" \
-    "${API_URL}" \
-    -d "{\"command\": \"${REDIS_CMD}\"}")
+# Build and send command using Upstash JSON array format
+if [ -n "$SECTION" ]; then
+    RESPONSE=$(curl -s -X POST \
+        -H "Authorization: Bearer ${API_TOKEN}" \
+        -H "Content-Type: application/json" \
+        "${API_URL}" \
+        -d "$(printf '%s\n' "XADD" "$STREAM_KEY" "*" "instruction" "$INSTRUCTION" "timestamp" "$TIMESTAMP" "priority" "$PRIORITY" "section" "$SECTION" | jq -R . | jq -s .)")
+else
+    RESPONSE=$(curl -s -X POST \
+        -H "Authorization: Bearer ${API_TOKEN}" \
+        -H "Content-Type: application/json" \
+        "${API_URL}" \
+        -d "$(printf '%s\n' "XADD" "$STREAM_KEY" "*" "instruction" "$INSTRUCTION" "timestamp" "$TIMESTAMP" "priority" "$PRIORITY" | jq -R . | jq -s .)")
+fi
 
 # Check response
-if echo "$RESPONSE" | grep -q '"error"'; then
+if echo "$RESPONSE" | grep -qi '"error"'; then
     echo -e "${RED}❌ Error sending instruction${NC}"
     echo "Response: $RESPONSE"
     exit 1
 else
-    MESSAGE_ID=$(echo "$RESPONSE" | grep -o '"[0-9]*-[0-9]*"' | tr -d '"' | head -1)
+    MESSAGE_ID=$(echo "$RESPONSE" | jq -r '.result // empty' 2>/dev/null)
+    if [ -z "$MESSAGE_ID" ]; then
+        MESSAGE_ID=$(echo "$RESPONSE" | grep -o '[0-9]*-[0-9]*' | head -1)
+    fi
     echo -e "${GREEN}✅ Instruction sent successfully!${NC}\n"
     echo -e "${BLUE}Message Details:${NC}"
     echo -e "  Message ID: ${GREEN}${MESSAGE_ID}${NC}"

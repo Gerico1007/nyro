@@ -53,12 +53,13 @@ declare -A MUSICIANS=(
 
 # Send Redis command via Upstash REST API
 redis_command() {
-    local cmd="$1"
+    # Convert arguments to JSON array
+    # Usage: redis_command XADD stream_key '*' field1 value1 field2 value2...
     local response=$(curl -s -X POST \
         -H "Authorization: Bearer ${API_TOKEN}" \
         -H "Content-Type: application/json" \
         "${API_URL}" \
-        -d "{\"command\": \"${cmd}\"}")
+        -d "$(printf '%s\n' "$@" | jq -R . | jq -s .)")
 
     echo "$response"
 }
@@ -66,9 +67,9 @@ redis_command() {
 # Check if stream exists
 stream_exists() {
     local stream="$1"
-    local response=$(redis_command "XLEN $stream")
+    local response=$(redis_command "XLEN" "$stream")
 
-    if echo "$response" | grep -q '"error"'; then
+    if echo "$response" | grep -qi '"error"'; then
         return 1
     fi
     return 0
@@ -78,9 +79,12 @@ stream_exists() {
 group_exists() {
     local stream="$1"
     local group="$2"
-    local response=$(redis_command "XINFO GROUPS $stream")
+    local response=$(redis_command "XINFO" "GROUPS" "$stream")
 
-    if echo "$response" | grep -q "\"$group\""; then
+    if echo "$response" | grep -qi '"error"'; then
+        return 1
+    fi
+    if echo "$response" | grep -q "$group"; then
         return 0
     fi
     return 1
@@ -121,9 +125,10 @@ for musician in "${!MUSICIANS[@]}"; do
     else
         # Create stream with initial message
         echo -e "${YELLOW}  → Creating stream: $stream_key${NC}"
-        init_response=$(redis_command "XADD $stream_key * instruction 'Ready to begin' timestamp '$(date -u +%Y-%m-%dT%H:%M:%SZ)' priority 'normal' section 'intro'")
+        TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+        init_response=$(redis_command "XADD" "$stream_key" "*" "instruction" "Ready to begin" "timestamp" "$TIMESTAMP" "priority" "normal" "section" "intro")
 
-        if echo "$init_response" | grep -q '"error"'; then
+        if echo "$init_response" | grep -qi '"error"'; then
             echo -e "${RED}    ❌ Failed to create stream${NC}"
             echo "    Error: $init_response"
         else
@@ -137,9 +142,9 @@ for musician in "${!MUSICIANS[@]}"; do
     else
         # Create consumer group
         echo -e "${YELLOW}  → Creating consumer group: $group_name${NC}"
-        group_response=$(redis_command "XGROUP CREATE $stream_key $group_name 0 MKSTREAM")
+        group_response=$(redis_command "XGROUP" "CREATE" "$stream_key" "$group_name" "0" "MKSTREAM")
 
-        if echo "$group_response" | grep -q '"error"'; then
+        if echo "$group_response" | grep -qi '"error"'; then
             echo -e "${RED}    ❌ Failed to create consumer group${NC}"
             echo "    Error: $group_response"
         else
@@ -160,12 +165,12 @@ for musician in "${!MUSICIANS[@]}"; do
     stream_key="musician:${musician}"
 
     # Get stream length
-    length_response=$(redis_command "XLEN $stream_key")
+    length_response=$(redis_command "XLEN" "$stream_key")
 
-    if echo "$length_response" | grep -q '"error"'; then
+    if echo "$length_response" | grep -qi '"error"'; then
         echo -e "${RED}❌ $stream_key - Error getting stream info${NC}"
     else
-        length=$(echo "$length_response" | grep -o '[0-9]*' | head -1)
+        length=$(echo "$length_response" | jq -r '.result // .error' 2>/dev/null || echo "0")
         echo -e "${GREEN}✅ $stream_key${NC} (${length} messages)"
     fi
 done
