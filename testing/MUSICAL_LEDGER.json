@@ -141,28 +141,18 @@
       "team_member": "\ud83e\uddf5"
     },
     {
-      "timestamp": "2025-12-01T06:04:24.770102",
-      "session_id": "session_251201_060424",
-      "activity_type": "session_start",
-      "description": "\ud83c\udfbc Musical session started: \u2660\ufe0f\ud83c\udf3f\ud83c\udfb8\ud83e\uddf5 Nyro Interactive Session",
+      "timestamp": "2025-12-04T22:43:49.790590",
+      "session_id": "session_251201_002322",
+      "activity_type": "switch_profile",
+      "description": "\ud83e\uddf5 Switched to: default",
       "abc_notation": null,
-      "rhythmic_pattern": null,
+      "rhythmic_pattern": "|-|-|-|-",
       "harmonic_context": null,
-      "team_member": "\ud83c\udfb8"
+      "team_member": "\ud83e\uddf5"
     },
     {
-      "timestamp": "2025-12-01T06:04:24.771128",
-      "session_id": "session_251201_060424",
-      "activity_type": "session_start",
-      "description": "\ud83c\udfb8 Interactive CLI session started",
-      "abc_notation": null,
-      "rhythmic_pattern": "G-D-A-E-",
-      "harmonic_context": null,
-      "team_member": "\ud83c\udfb8"
-    },
-    {
-      "timestamp": "2025-12-01T06:04:45.204293",
-      "session_id": "session_251201_060424",
+      "timestamp": "2025-12-04T22:44:00.568580",
+      "session_id": "session_251201_002322",
       "activity_type": "session_end",
       "description": "\ud83c\udfb8 Interactive CLI session ended",
       "abc_notation": null,
@@ -207,17 +197,8 @@
       "tempo": 120,
       "key_signature": "C",
       "time_signature": "4/4"
-    },
-    "session_251201_060424": {
-      "session_id": "session_251201_060424",
-      "title": "\u2660\ufe0f\ud83c\udf3f\ud83c\udfb8\ud83e\uddf5 Nyro Interactive Session",
-      "abc_notation": "",
-      "composition_notes": "Musical session: \u2660\ufe0f\ud83c\udf3f\ud83c\udfb8\ud83e\uddf5 Nyro Interactive Session",
-      "tempo": 120,
-      "key_signature": "C",
-      "time_signature": "4/4"
     }
   },
-  "current_session_id": "session_251201_060424",
-  "last_updated": "2025-12-01T06:04:45.204615"
+  "current_session_id": "session_251201_002322",
+  "last_updated": "2025-12-04T22:44:00.568869"
 }
